@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package blog;
+
+service BlogService {
+  rpc Register(RegisterRequest) returns (AuthResponse);
+
+  rpc Login(LoginRequest) returns (AuthResponse);
+
+  rpc CreatePost(CreatePostRequest) returns (CreatePostResponse);
+
+  rpc UpdatePost(UpdatePostRequest) returns (UpdatePostResponse);
+
+  rpc DeletePost(DeletePostRequest) returns (DeletePostResponse);
+
+  rpc GetPost(GetPostRequest) returns (GetPostResponse);
+
+  rpc ListPosts(ListPostsRequest) returns (ListPostsResponse);
+}
+
+// ── Auth ──────────────────────────────────────────────────
+
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+  string email    = 3;
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message AuthResponse {
+  string token = 1;
+}
+
+// ── Post entity ───────────────────────────────────────────
+
+message Post {
+  int64  id         = 1;
+  string title      = 2;
+  string content    = 3;
+  int64  author_id  = 4;
+  int64  created_at = 5;
+  int64  updated_at = 6;
+}
+
+// ── Post RPCs ─────────────────────────────────────────────
+
+message CreatePostRequest {
+  string title   = 1;
+  string content = 2;
+}
+
+message CreatePostResponse {
+  Post post = 1;
+}
+
+message UpdatePostRequest {
+  int64  id      = 1;
+  string title   = 2;
+  string content = 3;
+}
+
+message UpdatePostResponse {
+  Post post = 1;
+}
+
+message DeletePostRequest {
+  int64 id = 1;
+}
+
+message DeletePostResponse {}
+
+message GetPostRequest {
+  int64 id = 1;
+}
+
+message GetPostResponse {
+  Post post = 1;
+}
+
+message ListPostsRequest {}
+
+message ListPostsResponse {
+  repeated Post posts = 1;
+}
