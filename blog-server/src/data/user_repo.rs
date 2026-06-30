@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
-use crate::{domain::User, infra::DbError};
+use crate::infra::DbError;
 
 pub struct UserRepo(PgPool);
 
@@ -23,6 +23,12 @@ pub struct SignupDb {
     username: String,
     password_hash: String,
     email: String,
+}
+
+impl UserRepo {
+    pub fn new(p: &PgPool) -> Self {
+        Self(p.clone())
+    }
 }
 
 type AuthResult = Result<UserDb, DbError>;

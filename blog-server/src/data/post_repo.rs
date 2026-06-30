@@ -19,11 +19,17 @@ pub struct PostUpsertDb<'a> {
     content: &'a str,
 }
 
-struct PostRepo(PgPool);
+pub struct PostRepo(PgPool);
 
 impl AsRef<PgPool> for PostRepo {
     fn as_ref(&self) -> &PgPool {
         &self.0
+    }
+}
+
+impl PostRepo {
+    pub fn new(p: &PgPool) -> Self {
+        Self(p.clone())
     }
 }
 
