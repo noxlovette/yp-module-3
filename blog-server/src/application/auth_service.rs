@@ -23,7 +23,7 @@ pub enum AuthError {
     #[error("invalid credentials")]
     InvalidCredentials,
 
-    #[error("validation/parsing error: {)}")]
+    #[error("validation/parsing error: {0}")]
     Parsing(#[from] ParsingError),
 }
 

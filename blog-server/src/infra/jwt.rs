@@ -1,3 +1,4 @@
+use crate::domain::Username;
 use chrono::Duration;
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
@@ -5,9 +6,15 @@ use std::{env, sync::Arc};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    user_id: String,
-    username: String,
+    user_id: i64,
+    username: Username,
     exp: u64,
+}
+
+impl Claims {
+    pub fn get_user_id(&self) -> i64 {
+        self.user_id
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -41,14 +48,14 @@ impl JwtService {
 
     pub fn generate_token(
         &self,
-        user_id: &str,
+        user_id: i64,
         username: &str,
     ) -> Result<Token, JwtError> {
         let exp = jsonwebtoken::get_current_timestamp()
             + Self::TOKEN_LIFE.as_seconds_f32() as u64;
 
         let claims = Claims {
-            user_id: user_id.into(),
+            user_id,
             username: username.into(),
             exp,
         };

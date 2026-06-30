@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize, de};
-use thiserror::Error;
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::domain::ParsingError;
@@ -8,6 +7,12 @@ use crate::domain::ParsingError;
 #[derive(Debug, Clone, Serialize)]
 #[serde(transparent)]
 pub struct Username(String);
+
+impl From<&str> for Username {
+    fn from(value: &str) -> Self {
+        Self::new(value)
+    }
+}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(transparent)]
