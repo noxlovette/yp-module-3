@@ -91,7 +91,8 @@ impl<'de> Deserialize<'de> for Username {
     where
         D: serde::Deserializer<'de>,
     {
-        Self::parse(String::deserialize(deserializer)?).map_err(de::Error::custom)
+        Self::parse(String::deserialize(deserializer)?)
+            .map_err(de::Error::custom)
     }
 }
 
@@ -121,7 +122,8 @@ impl<'de> Deserialize<'de> for Password {
     where
         D: serde::Deserializer<'de>,
     {
-        Self::parse(String::deserialize(deserializer)?).map_err(de::Error::custom)
+        Self::parse(String::deserialize(deserializer)?)
+            .map_err(de::Error::custom)
     }
 }
 
@@ -144,6 +146,7 @@ impl<'de> Deserialize<'de> for Email {
     where
         D: serde::Deserializer<'de>,
     {
-        Self::parse(String::deserialize(deserializer)?).map_err(de::Error::custom)
+        Self::parse(String::deserialize(deserializer)?)
+            .map_err(de::Error::custom)
     }
 }

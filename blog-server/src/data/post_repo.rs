@@ -101,7 +101,10 @@ impl PostRepo {
     }
 
     /// Gets all posts for given user
-    pub async fn list_posts(&self, author_id: i64) -> Result<Vec<PostDb>, DbError> {
+    pub async fn list_posts(
+        &self,
+        author_id: i64,
+    ) -> Result<Vec<PostDb>, DbError> {
         sqlx::query_as!(
             PostDb,
             r#"

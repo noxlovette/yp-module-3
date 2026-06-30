@@ -9,7 +9,9 @@ type IdPath = web::Path<i64>;
 
 pub mod auth {
     use crate::domain::{LoginPayload, SignupPayload};
-    use actix_web::{App, HttpResponse, HttpServer, Responder, get, post, web::Json};
+    use actix_web::{
+        App, HttpResponse, HttpServer, Responder, get, post, web::Json,
+    };
 
     #[post("/register")]
     pub async fn register(payload: Json<SignupPayload>) -> impl Responder {
@@ -35,7 +37,10 @@ pub mod posts {
     }
 
     #[put("/{id}")]
-    pub async fn update_post(path: IdPath, payload: Json<PostUpsert>) -> impl Responder {
+    pub async fn update_post(
+        path: IdPath,
+        payload: Json<PostUpsert>,
+    ) -> impl Responder {
         let id = path.into_inner();
     }
     #[delete("/{id}")]

@@ -39,8 +39,13 @@ impl JwtService {
         })
     }
 
-    pub fn generate_token(&self, user_id: &str, username: &str) -> Result<String, JwtError> {
-        let exp = jsonwebtoken::get_current_timestamp() + Self::TOKEN_LIFE.as_seconds_f32() as u64;
+    pub fn generate_token(
+        &self,
+        user_id: &str,
+        username: &str,
+    ) -> Result<String, JwtError> {
+        let exp = jsonwebtoken::get_current_timestamp()
+            + Self::TOKEN_LIFE.as_seconds_f32() as u64;
 
         let claims = Claims {
             user_id: user_id.into(),
