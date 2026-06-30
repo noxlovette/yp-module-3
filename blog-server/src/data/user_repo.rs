@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
-use crate::infra::DbError;
+use crate::{domain::Username, infra::DbError};
 
 pub struct UserRepo(PgPool);
 
@@ -33,21 +33,41 @@ impl UserRepo {
 
 type AuthResult = Result<UserDb, DbError>;
 
+pub enum ReaderCaller {
+    Id(i64),
+    Username(Username),
+}
+
 impl UserRepo {
-    /// Reads a user
-    pub async fn read_user(&self, id: i64) -> AuthResult {
-        sqlx::query_as!(
-            UserDb,
-            r#"
+    /// Reads a user either by id or username
+    pub async fn read_user(&self, reader: ReaderCaller) -> AuthResult {
+        use ReaderCaller::*;
+        match reader {
+            Id(id) => sqlx::query_as!(
+                UserDb,
+                r#"
             SELECT id, username, email, password_hash, created_at
             FROM users
             WHERE id = $1
         "#,
-            id
-        )
-        .fetch_one(self.as_ref())
-        .await
-        .map_err(Into::into)
+                id
+            )
+            .fetch_one(self.as_ref())
+            .await
+            .map_err(Into::into),
+            Username(username) => sqlx::query_as!(
+                UserDb,
+                r#"
+        SELECT id, username, email, password_hash, created_at
+        FROM users
+        WHERE username = $1
+    "#,
+                username.as_ref()
+            )
+            .fetch_one(self.as_ref())
+            .await
+            .map_err(Into::into),
+        }
     }
 
     /// Creates a new user

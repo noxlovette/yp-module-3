@@ -3,9 +3,11 @@ use serde::{Deserialize, Serialize, de};
 use thiserror::Error;
 use unicode_segmentation::UnicodeSegmentation;
 
+use crate::domain::ParsingError;
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(transparent)]
-struct Username(String);
+pub struct Username(String);
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(transparent)]
@@ -70,22 +72,6 @@ impl Username {
     }
 }
 
-#[derive(Debug, Error)]
-enum ParsingError {
-    #[error("{entity} must be between {min} and {max} characters")]
-    InvalidLength {
-        entity: &'static str,
-        min: usize,
-        max: usize,
-    },
-
-    #[error("{0} containes invalid char")]
-    InvalidChar(&'static str),
-
-    #[error("invalid format for {0}")]
-    InvalidFormat(&'static str),
-}
-
 impl<'de> Deserialize<'de> for Username {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -148,5 +134,11 @@ impl<'de> Deserialize<'de> for Email {
     {
         Self::parse(String::deserialize(deserializer)?)
             .map_err(de::Error::custom)
+    }
+}
+
+impl AsRef<str> for Username {
+    fn as_ref(&self) -> &str {
+        &self.0
     }
 }

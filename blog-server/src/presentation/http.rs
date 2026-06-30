@@ -1,30 +1,51 @@
-use actix_web::web;
+use crate::application::{
+    ApplicationError, AuthError, AuthService, BlogService,
+};
+use actix_web::{ResponseError, web};
+use std::sync::Arc;
 
+// TODO: both need to return correct response types and error messages
+impl ResponseError for ApplicationError {}
+impl ResponseError for AuthError {}
+
+/// The app state that all handlers share
 pub struct AppState {
-    auth_service: AuthService,
-    blog_service: BlogService,
+    auth_service: Arc<AuthService>,
+    blog_service: Arc<BlogService>,
 }
 
 type IdPath = web::Path<i64>;
 
 pub mod auth {
-    use crate::domain::{LoginPayload, SignupPayload};
+    use crate::{
+        application::ApplicationResult,
+        domain::{LoginPayload, SignupPayload},
+        presentation::http::AppState,
+    };
     use actix_web::{
-        App, HttpResponse, HttpServer, Responder, get, post, web::Json,
+        HttpResponse, post,
+        web::{self, Json},
     };
 
     #[post("/register")]
-    pub async fn register(payload: Json<SignupPayload>) -> impl Responder {
-        todo!("authservice signs the user up")
+    pub async fn register(
+        state: web::Data<AppState>,
+        payload: Json<SignupPayload>,
+    ) -> ApplicationResult<HttpResponse> {
+        Ok(HttpResponse::Created()
+            .json(state.auth_service.signup(payload.into_inner())?))
     }
 
     #[post("/login")]
-    pub async fn login(payload: Json<LoginPayload>) -> impl Responder {
-        todo!("authservice logs the user in")
+    pub async fn login(
+        state: web::Data<AppState>,
+        payload: Json<LoginPayload>,
+    ) -> ApplicationResult<HttpResponse> {
+        Ok(HttpResponse::Ok()
+            .json(state.auth_service.login(payload.into_inner())?))
     }
 }
 pub mod posts {
-
     use super::IdPath;
     use crate::domain::PostUpsert;
     use actix_web::{Responder, delete, get, post, put, web::Json};

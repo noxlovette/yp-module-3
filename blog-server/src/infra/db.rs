@@ -25,3 +25,9 @@ impl Database {
         MIGRATOR.run(&self.0).await.map_err(Into::into)
     }
 }
+
+impl AsRef<PgPool> for Database {
+    fn as_ref(&self) -> &PgPool {
+        &self.0
+    }
+}
