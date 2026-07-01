@@ -89,6 +89,10 @@ impl Token {
     pub fn new(s: String) -> Self {
         Self(s)
     }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
 }
 
 impl AsRef<[u8]> for Token {

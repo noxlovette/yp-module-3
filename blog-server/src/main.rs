@@ -1,3 +1,4 @@
+use actix_cors::Cors;
 use actix_web::{App, HttpServer, web};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use blog_server::presentation::{
@@ -11,32 +12,49 @@ use blog_server::presentation::{
 use std::time::Duration;
 
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> anyhow::Result<()> {
     let state = AppState::new()
         .await
         .expect("failed to initialize app state");
+
     HttpServer::new(move || {
-        App::new().app_data(web::Data::new(state.clone())).service(
-            web::scope("/api")
-                .service(web::scope("/auth").service(register).service(login))
-                .service(
-                    web::scope("/posts")
-                        // public: reachable without a bearer token
-                        .service(list_posts)
-                        .service(get_post)
-                        // protected: bearer token required
-                        .service(
-                            web::scope("")
-                                .wrap(HttpAuthentication::bearer(jwt_validator))
-                                .service(create_post)
-                                .service(update_post)
-                                .service(delete_post),
-                        ),
-                ),
-        )
+        let cors = Cors::default()
+            .allowed_origin("http://frontend:4000")
+            .allowed_origin("http://localhost:4000")
+            .allow_any_header()
+            .max_age(3600)
+            .allowed_methods(vec!["GET", "POST", "DELETE", "PUT", "OPTIONS"]);
+
+        App::new()
+            .wrap(cors)
+            .app_data(web::Data::new(state.clone()))
+            .service(
+                web::scope("/api")
+                    .service(
+                        web::scope("/auth").service(register).service(login),
+                    )
+                    .service(
+                        web::scope("/posts")
+                            // public: reachable without a bearer token
+                            .service(list_posts)
+                            .service(get_post)
+                            // protected: bearer token required
+                            .service(
+                                web::scope("")
+                                    .wrap(HttpAuthentication::bearer(
+                                        jwt_validator,
+                                    ))
+                                    .service(create_post)
+                                    .service(update_post)
+                                    .service(delete_post),
+                            ),
+                    ),
+            )
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("0.0.0.0", 3000))?
     .keep_alive(Duration::from_secs(80))
     .run()
-    .await
+    .await?;
+
+    Ok(())
 }

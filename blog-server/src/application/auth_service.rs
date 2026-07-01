@@ -28,6 +28,12 @@ impl From<(Token, User)> for UserToken {
     }
 }
 
+impl UserToken {
+    pub fn token(&self) -> &Token {
+        &self.token
+    }
+}
+
 impl AuthService {
     pub fn new(p: &PgPool) -> DomainResult<Arc<Self>> {
         Ok(Arc::new(Self {

@@ -30,6 +30,30 @@ impl Post {
         }
         Ok(())
     }
+
+    pub fn id(&self) -> i64 {
+        self.id
+    }
+
+    pub fn title(&self) -> &str {
+        &self.title
+    }
+
+    pub fn content(&self) -> &str {
+        &self.content
+    }
+
+    pub fn author_id(&self) -> i64 {
+        self.author_id
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    pub fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
 }
 
 impl From<PostDb> for Post {

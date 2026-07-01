@@ -65,7 +65,7 @@ impl PostRepo {
     ///
     /// Does not validate ownership
     pub async fn delete_post(&self, id: i64) -> Result<(), sqlx::Error> {
-        let qr = sqlx::query!(
+        sqlx::query!(
             r#"
            DELETE FROM posts
            WHERE id = $1

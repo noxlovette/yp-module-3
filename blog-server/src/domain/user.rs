@@ -133,7 +133,7 @@ impl Username {
     }
 
     /// Parses passed string to validate length and chars used in the username
-    fn parse(raw: String) -> Result<Self, ParsingError> {
+    pub fn parse(raw: String) -> Result<Self, ParsingError> {
         if !(Self::MIN..=Self::MAX).contains(&raw.graphemes(true).count()) {
             return Err(ParsingError::InvalidLength {
                 entity: "username",
@@ -185,7 +185,7 @@ impl Password {
     }
 
     /// Parses a string into a plain password
-    fn parse(raw: String) -> Result<Self, ParsingError> {
+    pub fn parse(raw: String) -> Result<Self, ParsingError> {
         if !(Self::MIN..=Self::MAX).contains(&raw.graphemes(true).count()) {
             return Err(ParsingError::InvalidLength {
                 entity: "password",
