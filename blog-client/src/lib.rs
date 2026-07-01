@@ -175,18 +175,14 @@ impl BlogClient {
     }
 
     pub async fn get_post(&mut self, id: i64) -> BlogClientResult<Post> {
-        let token = self.require_token()?;
         match &mut self.kind {
-            ClientKind::Http(c) => c.get_post(&token, id).await,
-            ClientKind::Grpc(c) => {
-                let req =
-                    with_auth(Request::new(GetPostRequest { id }), &token)?;
-                Ok(c.get_post(req)
-                    .await?
-                    .into_inner()
-                    .post
-                    .ok_or(BlogClientError::NotFound)?)
-            }
+            ClientKind::Http(c) => c.get_post(id).await,
+            ClientKind::Grpc(c) => Ok(c
+                .get_post(Request::new(GetPostRequest { id }))
+                .await?
+                .into_inner()
+                .post
+                .ok_or(BlogClientError::NotFound)?),
         }
     }
 
@@ -237,18 +233,16 @@ impl BlogClient {
         limit: Option<Limit>,
         offset: Option<Offset>,
     ) -> BlogClientResult<ListPostsResponse> {
-        let token = self.require_token()?;
         let posts = match &mut self.kind {
-            ClientKind::Http(c) => c.list_posts(&token, limit, offset).await?,
+            ClientKind::Http(c) => c.list_posts(limit, offset).await?,
             ClientKind::Grpc(c) => {
-                let req = with_auth(
-                    Request::new(ListPostsRequest {
-                        limit: limit.map(|l| l.get()),
-                        offset: offset.map(|o| o.get()),
-                    }),
-                    &token,
-                )?;
-                c.list_posts(req).await?.into_inner().posts
+                c.list_posts(Request::new(ListPostsRequest {
+                    limit: limit.map(|l| l.get()),
+                    offset: offset.map(|o| o.get()),
+                }))
+                .await?
+                .into_inner()
+                .posts
             }
         };
 

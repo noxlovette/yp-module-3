@@ -5,10 +5,7 @@ use blog_proto::{
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    Limit, Offset,
-    error::{BlogClientError, BlogClientResult},
-};
+use crate::{Limit, Offset, error::BlogClientResult};
 
 pub struct HttpClient {
     http: Client,
@@ -41,19 +38,6 @@ struct AuthDto {
     user: User,
 }
 
-async fn map_error(resp: reqwest::Response) -> BlogClientError {
-    match resp.status() {
-        reqwest::StatusCode::NOT_FOUND => BlogClientError::NotFound,
-        reqwest::StatusCode::UNAUTHORIZED | reqwest::StatusCode::FORBIDDEN => {
-            BlogClientError::Unauthorized
-        }
-        status => {
-            let body = resp.text().await.unwrap_or_default();
-            BlogClientError::InvalidRequest(format!("{status}: {body}"))
-        }
-    }
-}
-
 impl HttpClient {
     pub async fn register(
         &self,
@@ -64,11 +48,8 @@ impl HttpClient {
             .post(self.url("/api/auth/register"))
             .json(&r)
             .send()
-            .await?;
-
-        if !resp.status().is_success() {
-            return Err(map_error(resp).await);
-        }
+            .await?
+            .error_for_status()?;
 
         let auth: AuthDto = resp.json().await?;
         Ok(RegisterResponse {
@@ -91,11 +72,8 @@ impl HttpClient {
             .post(self.url("/api/auth/login"))
             .json(&payload)
             .send()
-            .await?;
-
-        if !resp.status().is_success() {
-            return Err(map_error(resp).await);
-        }
+            .await?
+            .error_for_status()?;
 
         let auth: AuthDto = resp.json().await?;
         Ok(LoginResponse {
@@ -115,32 +93,21 @@ impl HttpClient {
             .bearer_auth(token)
             .json(&r)
             .send()
-            .await?;
-
-        if !resp.status().is_success() {
-            return Err(map_error(resp).await);
-        }
+            .await?
+            .error_for_status()?;
 
         Ok(CreatePostResponse {
             post: Some(resp.json().await?),
         })
     }
 
-    pub async fn get_post(
-        &self,
-        token: &str,
-        id: i64,
-    ) -> BlogClientResult<Post> {
+    pub async fn get_post(&self, id: i64) -> BlogClientResult<Post> {
         let resp = self
             .http
             .get(self.url(&format!("/api/posts/{id}")))
-            .bearer_auth(token)
             .send()
-            .await?;
-
-        if !resp.status().is_success() {
-            return Err(map_error(resp).await);
-        }
+            .await?
+            .error_for_status()?;
 
         Ok(resp.json().await?)
     }
@@ -152,9 +119,6 @@ impl HttpClient {
         title: &str,
         content: &str,
     ) -> BlogClientResult<Post> {
-        // The proto request carries `id` for the gRPC path, but the HTTP
-        // route takes it from the URL; the server ignores unknown JSON
-        // fields, so sending it in the body too is harmless.
         let r = UpdatePostRequest {
             id,
             title: title.to_string(),
@@ -167,11 +131,8 @@ impl HttpClient {
             .bearer_auth(token)
             .json(&r)
             .send()
-            .await?;
-
-        if !resp.status().is_success() {
-            return Err(map_error(resp).await);
-        }
+            .await?
+            .error_for_status()?;
 
         Ok(resp.json().await?)
     }
@@ -181,23 +142,18 @@ impl HttpClient {
         token: &str,
         id: i64,
     ) -> BlogClientResult<()> {
-        let resp = self
-            .http
+        self.http
             .delete(self.url(&format!("/api/posts/{id}")))
             .bearer_auth(token)
             .send()
-            .await?;
-
-        if !resp.status().is_success() {
-            return Err(map_error(resp).await);
-        }
+            .await?
+            .error_for_status()?;
 
         Ok(())
     }
 
     pub async fn list_posts(
         &self,
-        token: &str,
         limit: Option<Limit>,
         offset: Option<Offset>,
     ) -> BlogClientResult<Vec<Post>> {
@@ -209,14 +165,10 @@ impl HttpClient {
         let resp = self
             .http
             .get(self.url("/api/posts/"))
-            .bearer_auth(token)
             .query(&query.into_iter().flatten().collect::<Vec<_>>())
             .send()
-            .await?;
-
-        if !resp.status().is_success() {
-            return Err(map_error(resp).await);
-        }
+            .await?
+            .error_for_status()?;
 
         Ok(resp.json().await?)
     }
