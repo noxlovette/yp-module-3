@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
@@ -103,8 +101,8 @@ impl PostRepo {
     pub async fn list_posts(
         &self,
         author_id: i64,
-        limit: Option<Limit>,
-        offset: Option<Offset>,
+        limit: Limit,
+        offset: Offset,
     ) -> Result<Vec<PostDb>, sqlx::Error> {
         sqlx::query_as!(
             PostDb,
@@ -115,8 +113,8 @@ impl PostRepo {
            LIMIT $2 OFFSET $3
            "#,
             author_id,
-            limit.unwrap_or_default().get(),
-            offset.unwrap_or_default().get()
+            limit.get(),
+            offset.get()
         )
         .fetch_all(self.as_ref())
         .await

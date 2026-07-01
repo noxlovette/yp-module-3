@@ -1,13 +1,24 @@
-use std::sync::Arc;
-
 use crate::{
     data::PostRepo,
-    domain::{DomainResult, Post, PostUpsert},
+    domain::{DomainResult, Limit, Offset, Post, PostUpsert},
 };
 use sqlx::PgPool;
+use std::sync::Arc;
 
 pub struct BlogService(PostRepo);
+pub struct Pagination {
+    offset: Offset,
+    limit: Limit,
+}
 
+impl Pagination {
+    pub fn new(o: Option<Offset>, l: Option<Limit>) -> Self {
+        Self {
+            offset: o.unwrap_or_default(),
+            limit: l.unwrap_or_default(),
+        }
+    }
+}
 impl AsRef<PostRepo> for BlogService {
     fn as_ref(&self) -> &PostRepo {
         &self.0
@@ -20,8 +31,15 @@ impl BlogService {
     }
 
     /// Lists every post owned by `author_id`.
-    pub async fn list(&self, author_id: i64) -> DomainResult<Vec<Post>> {
-        let posts = self.as_ref().list_posts(author_id).await?;
+    pub async fn list(
+        &self,
+        author_id: i64,
+        p: Pagination,
+    ) -> DomainResult<Vec<Post>> {
+        let posts = self
+            .as_ref()
+            .list_posts(author_id, p.limit, p.offset)
+            .await?;
         Ok(posts.into_iter().map(Into::into).collect())
     }
 
@@ -47,7 +65,8 @@ impl BlogService {
         user_id: i64,
         p: PostUpsert,
     ) -> DomainResult<Post> {
-        let post: Post = self.as_ref().insert_post(&p.into_db(user_id)).await?.into();
+        let post: Post =
+            self.as_ref().insert_post(&p.into_db(user_id)).await?.into();
         tracing::info!(user_id, post_id = post.id(), "post created");
         Ok(post)
     }

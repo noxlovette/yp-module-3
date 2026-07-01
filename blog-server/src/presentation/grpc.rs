@@ -5,18 +5,29 @@ use blog_proto::{
     DeletePostResponse, GetPostRequest, GetPostResponse, ListPostsRequest,
     ListPostsResponse, LoginRequest, LoginResponse, Post as ProtoPost,
     RegisterRequest, RegisterResponse, UpdatePostRequest, UpdatePostResponse,
-    blog_service_server::BlogService as BlogServiceTrait,
+    User as ProtoUser, blog_service_server::BlogService as BlogServiceTrait,
 };
 use tonic::{Request, Response, Status};
 
 use crate::{
-    application::{AuthService, BlogService},
+    application::{AuthService, BlogService, Pagination},
     domain::{
-        DomainError, Email, LoginPayload, Password, PostUpsert, SignupPayload,
-        Username,
+        DomainError, Email, Limit, LoginPayload, Offset, Password, PostUpsert,
+        SignupPayload, Username,
     },
     infra::Token,
 };
+
+impl From<&crate::domain::User> for ProtoUser {
+    fn from(u: &crate::domain::User) -> Self {
+        ProtoUser {
+            id: u.id,
+            username: u.username.as_ref().to_string(),
+            email: u.email.as_ref().to_string(),
+            created_at: u.created_at.timestamp(),
+        }
+    }
+}
 
 impl From<crate::domain::Post> for ProtoPost {
     fn from(p: crate::domain::Post) -> Self {
@@ -118,6 +129,7 @@ impl BlogServiceTrait for BlogGrpcService {
 
         Ok(Response::new(RegisterResponse {
             token: user_token.token().as_str().to_string(),
+            user: Some(user_token.user().into()),
         }))
     }
 
@@ -138,6 +150,7 @@ impl BlogServiceTrait for BlogGrpcService {
 
         Ok(Response::new(LoginResponse {
             token: user_token.token().as_str().to_string(),
+            user: Some(user_token.user().into()),
         }))
     }
 
@@ -223,7 +236,17 @@ impl BlogServiceTrait for BlogGrpcService {
     ) -> Result<Response<ListPostsResponse>, Status> {
         let user_id = self.authenticate(&request)?;
         tracing::Span::current().record("user_id", user_id);
-        let posts = self.blog.list(user_id).await?;
+        let req = request.into_inner();
+        let posts = self
+            .blog
+            .list(
+                user_id,
+                Pagination::new(
+                    req.offset.map(Offset::new),
+                    req.limit.map(Limit::new),
+                ),
+            )
+            .await?;
 
         Ok(Response::new(ListPostsResponse {
             posts: posts.into_iter().map(Into::into).collect(),

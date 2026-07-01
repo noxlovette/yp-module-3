@@ -22,12 +22,22 @@ impl Default for Offset {
 }
 
 impl Offset {
+    pub fn new(v: i64) -> Self {
+        Self(v.max(0))
+    }
+
     pub fn get(&self) -> i64 {
         self.0
     }
 }
 
 impl Limit {
+    const MAX: i64 = 100;
+
+    pub fn new(v: i64) -> Self {
+        Self(v.clamp(1, Self::MAX))
+    }
+
     pub fn get(&self) -> i64 {
         self.0
     }

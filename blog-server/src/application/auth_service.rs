@@ -32,6 +32,10 @@ impl UserToken {
     pub fn token(&self) -> &Token {
         &self.token
     }
+
+    pub fn user(&self) -> &User {
+        &self.user
+    }
 }
 
 impl AuthService {

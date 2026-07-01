@@ -33,10 +33,12 @@ message LoginRequest {
 
 message RegisterResponse {
   string token = 1;
+  User user = 2;
 }
 
 message LoginResponse {
   string token = 1;
+  User user = 2;
 }
 
 // ── Post entity ───────────────────────────────────────────
@@ -48,6 +50,13 @@ message Post {
   int64 author_id = 4;
   int64 created_at = 5;
   int64 updated_at = 6;
+}
+
+message User {
+  int64 id = 1;
+  string username = 2;
+  string email = 3;
+  int64 created_at = 4;
 }
 
 // ── Post RPCs ─────────────────────────────────────────────
@@ -85,7 +94,10 @@ message GetPostResponse {
   Post post = 1;
 }
 
-message ListPostsRequest {}
+message ListPostsRequest {
+  optional int64 limit = 1;
+  optional int64 offset = 2;
+}
 
 message ListPostsResponse {
   repeated Post posts = 1;

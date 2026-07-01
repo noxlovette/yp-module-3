@@ -133,7 +133,8 @@ pub mod auth {
 pub mod posts {
     use super::IdPath;
     use crate::{
-        domain::{DomainResult, Post, PostUpsert},
+        application::Pagination,
+        domain::{DomainResult, Limit, Offset, Post, PostUpsert},
         infra::Claims,
         presentation::http::AppState,
     };
@@ -141,6 +142,13 @@ pub mod posts {
         HttpResponse, delete, get, post, put,
         web::{self, Json},
     };
+    use serde::Deserialize;
+
+    #[derive(Deserialize)]
+    pub struct ListQuery {
+        limit: Option<i64>,
+        offset: Option<i64>,
+    }
 
     #[get("/{id}")]
     pub async fn get_post(
@@ -192,8 +200,21 @@ pub mod posts {
     pub async fn list_posts(
         state: web::Data<AppState>,
         claims: Claims,
+        query: web::Query<ListQuery>,
     ) -> DomainResult<Json<Vec<Post>>> {
-        Ok(Json(state.blog_service.list(claims.get_user_id()).await?))
+        let query = query.into_inner();
+        Ok(Json(
+            state
+                .blog_service
+                .list(
+                    claims.get_user_id(),
+                    Pagination::new(
+                        query.offset.map(Offset::new),
+                        query.limit.map(Limit::new),
+                    ),
+                )
+                .await?,
+        ))
     }
 
     #[post("/")]
