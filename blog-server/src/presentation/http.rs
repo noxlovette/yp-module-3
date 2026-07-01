@@ -8,6 +8,7 @@ use actix_web::{
     http::{StatusCode, header::AUTHORIZATION},
     web,
 };
+use sqlx::PgPool;
 use std::{pin::Pin, sync::Arc};
 
 impl ResponseError for DomainError {
@@ -68,8 +69,7 @@ pub struct AppState {
 impl AppState {
     pub async fn new() -> DomainResult<Arc<Self>> {
         dotenvy::dotenv().ok();
-        // Missing config is a boot-time misconfiguration, not something an
-        // HTTP client ever sees, so it's fine to just panic here.
+        // to panic here is fine cause a misconfig toasts everything anyway
         let database_url =
             std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
@@ -79,6 +79,16 @@ impl AppState {
         Ok(Arc::new(Self {
             auth_service: AuthService::new(db.as_ref())?,
             blog_service: BlogService::new(db.as_ref()).await,
+        }))
+    }
+
+    /// Builds state straight from an already-migrated pool, skipping env
+    /// lookup and `migrate()`. Used by integration tests that get their
+    /// pool from `#[sqlx::test]`, which migrates for them.
+    pub async fn from_pool(pool: &PgPool) -> DomainResult<Arc<Self>> {
+        Ok(Arc::new(Self {
+            auth_service: AuthService::new(pool)?,
+            blog_service: BlogService::new(pool).await,
         }))
     }
 

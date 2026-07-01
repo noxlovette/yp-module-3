@@ -46,11 +46,12 @@ impl Into<String> for Username {
 
 impl TryInto<SignupDb> for SignupPayload {
     type Error = PasswordError;
+
     fn try_into(self) -> Result<SignupDb, Self::Error> {
         Ok(SignupDb {
             username: self.username.into(),
             email: self.email.into(),
-            password_hash: self.password.get_hash()?,
+            password_hash: self.password.hash()?.get_hash()?,
         })
     }
 }

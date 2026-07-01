@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use crate::{
     data::UserRepo,
-    domain::{DomainResult, LoginPayload, Password, SignupPayload, User},
+    domain::{
+        DomainError, DomainResult, LoginPayload, Password, SignupPayload, User,
+    },
     infra::{JwtService, Token},
 };
 use serde::Serialize;
@@ -54,7 +56,20 @@ impl AuthService {
 
     /// Creates a new user
     pub async fn signup(&self, p: SignupPayload) -> DomainResult<UserToken> {
-        let u: User = self.repo.insert_user(p.try_into()?).await?.into();
+        let db_user = match self.repo.insert_user(p.try_into()?).await {
+            Ok(db_user) => db_user,
+            Err(sqlx::Error::Database(e)) if e.is_unique_violation() => {
+                return Err(match e.constraint() {
+                    Some("users_username_key") => {
+                        DomainError::UsernameAlreadyExists
+                    }
+                    Some("users_email_key") => DomainError::EmailAlreadyExists,
+                    _ => DomainError::Database(e.to_string()),
+                });
+            }
+            Err(e) => return Err(e.into()),
+        };
+        let u: User = db_user.into();
         tracing::info!(
             user_id = u.id,
             username = u.username.as_ref(),
@@ -68,12 +83,20 @@ impl AuthService {
     ///
     /// Issues a JWT on success
     pub async fn login(&self, p: LoginPayload) -> DomainResult<UserToken> {
-        let u = self.repo.read_for_auth((&p).into()).await?;
+        let u = match self.repo.read_for_auth((&p).into()).await {
+            Ok(u) => u,
+            // Collapse "no such user" into the same error as "wrong
+            // password" so a caller can't use login to enumerate accounts.
+            Err(sqlx::Error::RowNotFound) => {
+                return Err(DomainError::InvalidCredentials);
+            }
+            Err(e) => return Err(e.into()),
+        };
         let h = Password::new_hashed(&u.password_hash);
 
-        if let Err(e) = p.get_password().validate(&h) {
+        if p.get_password().validate(&h).is_err() {
             tracing::warn!(user_id = u.id, "login failed: bad password");
-            return Err(e.into());
+            return Err(DomainError::InvalidCredentials);
         }
 
         tracing::info!(user_id = u.id, "user logged in");

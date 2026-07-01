@@ -81,16 +81,18 @@ impl PostRepo {
     }
 
     /// Updates a given post
-    pub async fn update_post<'a>(&self, u: &PostUpsertDb) -> PostResult {
+    pub async fn update_post(&self, id: i64, u: &PostUpsertDb) -> PostResult {
         sqlx::query_as!(
             PostDb,
             r#"
            UPDATE posts
            SET title = $1, content = $2
+           WHERE id = $3
            RETURNING *;
            "#,
             u.title,
-            u.content
+            u.content,
+            id
         )
         .fetch_one(self.as_ref())
         .await

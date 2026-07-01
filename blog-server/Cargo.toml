@@ -8,17 +8,17 @@ actix-cors = "0.7.1"
 actix-web = "4.14.0"
 actix-web-httpauth = "0.8.2"
 argon2 = { version = "0.5.3", features = ["std"] }
-chrono = { version = "0.4.45", features = ["serde"] }
-dotenvy = "0.15.7"
 anyhow.workspace = true
-jsonwebtoken = "10.4.0"
+dotenvy.workspace = true
+chrono.workspace = true
+jsonwebtoken = { version = "10.4.0", features = ["rust_crypto"] }
 serde = "1.0.228"
 thiserror.workspace = true
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 blog-proto = { path = "../blog-proto" }
 tonic.workspace = true
-tokio = { version = "1", features = ["macros"] }
+tokio.workspace = true
 sqlx = { version = "0.9", features = [
     "runtime-tokio",
     "tls-rustls-ring-native-roots",
@@ -28,3 +28,6 @@ sqlx = { version = "0.9", features = [
 ] }
 unicode-segmentation = "1.13.3"
 email_address = "0.2.9"
+
+[dev-dependencies]
+serde_json = "1.0"

@@ -81,8 +81,11 @@ impl BlogService {
         let post: Post = self.as_ref().get_post(post_id).await?.into();
         post.validate_ownership(user_id)?;
 
-        let updated: Post =
-            self.as_ref().update_post(&p.into_db(user_id)).await?.into();
+        let updated: Post = self
+            .as_ref()
+            .update_post(post_id, &p.into_db(user_id))
+            .await?
+            .into();
         tracing::info!(user_id, post_id, "post updated");
         Ok(updated)
     }

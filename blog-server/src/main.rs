@@ -37,7 +37,7 @@ async fn main() -> anyhow::Result<()> {
             .wrap(Logger::default())
             .wrap(Logger::new("%a %{User-Agent}i"))
             .wrap(cors)
-            .app_data(web::Data::new(state.clone()))
+            .app_data(web::Data::from(state.clone()))
             .service(
                 web::scope("/api")
                     .service(
