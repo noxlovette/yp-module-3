@@ -1,11 +1,8 @@
 use std::sync::Arc;
 
 use crate::{
-    data::{SignupDb, UserRepo},
-    domain::{
-        DomainResult, LoginPayload, Password, PasswordError, SignupPayload,
-        User,
-    },
+    data::UserRepo,
+    domain::{DomainResult, LoginPayload, Password, SignupPayload, User},
     infra::{JwtService, Token},
 };
 use serde::Serialize;
@@ -37,6 +34,12 @@ impl AuthService {
             repo: UserRepo::new(p),
             jwt: JwtService::new()?,
         }))
+    }
+
+    /// Exposes the JwtService so the `Claims` extractor can verify
+    /// incoming tokens without needing its own copy of the secret.
+    pub fn jwt(&self) -> &Arc<JwtService> {
+        &self.jwt
     }
 
     /// Creates a new user

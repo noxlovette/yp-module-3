@@ -1,6 +1,6 @@
 use crate::{
     data::{LoginCaller, SignupDb, UserDb},
-    domain::{ParsingError, user},
+    domain::ParsingError,
 };
 use argon2::{
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,

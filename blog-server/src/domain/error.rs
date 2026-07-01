@@ -17,6 +17,8 @@ pub enum DomainError {
     PostNotFound,
     #[error("Кышь отсюда")]
     Forbidden,
+    #[error("Требуется авторизация")]
+    Unauthorized,
     #[error("Expected list, got single, or vice versa")]
     TypeMismatch,
     #[error("validation/parsing error: {0}")]
@@ -28,8 +30,18 @@ pub enum DomainError {
 }
 
 impl From<JwtError> for DomainError {
-    fn from(value: JwtError) -> Self {
-        todo!()
+    // Deliberately collapse every JWT failure (bad signature, malformed
+    // token, expired `exp`, ...) into one generic response. Distinguishing
+    // them for the client would tell an attacker exactly which part of a
+    // forged token to fix next.
+    fn from(_value: JwtError) -> Self {
+        DomainError::Unauthorized
+    }
+}
+
+impl From<sqlx::migrate::MigrateError> for DomainError {
+    fn from(value: sqlx::migrate::MigrateError) -> Self {
+        DomainError::Database(value.to_string())
     }
 }
 

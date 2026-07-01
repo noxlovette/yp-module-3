@@ -1,4 +1,4 @@
-use crate::domain::{Email, User, Username};
+use crate::domain::{Email, Username};
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 

@@ -15,6 +15,10 @@ impl Claims {
     pub fn get_user_id(&self) -> i64 {
         self.user_id
     }
+
+    pub fn get_username(&self) -> &Username {
+        &self.username
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -1,30 +1,61 @@
 use crate::{
     application::{AuthService, BlogService},
-    domain::DomainError,
-    infra::Claims,
+    domain::{DomainError, DomainResult},
+    infra::{Claims, Database, Token},
 };
-use actix_web::{FromRequest, ResponseError, web};
+use actix_web::{
+    FromRequest, ResponseError,
+    http::{StatusCode, header::AUTHORIZATION},
+    web,
+};
 use std::{pin::Pin, sync::Arc};
 
-// TODO: need to return correct response types and error messages
-impl ResponseError for DomainError {}
+impl ResponseError for DomainError {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            DomainError::UserNotFound | DomainError::PostNotFound => {
+                StatusCode::NOT_FOUND
+            }
+            DomainError::UsernameAlreadyExists
+            | DomainError::EmailAlreadyExists => StatusCode::CONFLICT,
+            DomainError::InvalidCredentials | DomainError::Unauthorized => {
+                StatusCode::UNAUTHORIZED
+            }
+            DomainError::Forbidden => StatusCode::FORBIDDEN,
+            DomainError::TypeMismatch
+            | DomainError::Parsing(_)
+            | DomainError::Password(_) => StatusCode::BAD_REQUEST,
+            DomainError::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
 
 impl FromRequest for Claims {
     type Error = DomainError;
     type Future = Pin<Box<dyn Future<Output = Result<Self, Self::Error>>>>;
 
-    fn extract(req: &actix_web::HttpRequest) -> Self::Future {
-        todo!("get the token from the meow")
-    }
-
     fn from_request(
         req: &actix_web::HttpRequest,
-        payload: &mut actix_web::dev::Payload,
+        _payload: &mut actix_web::dev::Payload,
     ) -> Self::Future {
-        todo!(
-            "validate exp, validate the token, get the jwtservice from \
-             appstate"
-        )
+        // Pull everything we need out of `req` synchronously, since neither
+        // the header lookup nor `verify_token` is actually async - we only
+        // box a future because that's the shape `FromRequest` demands.
+        let token = req
+            .headers()
+            .get(AUTHORIZATION)
+            .and_then(|h| h.to_str().ok())
+            .and_then(|h| h.strip_prefix("Bearer "))
+            .map(|t| Token::new(t.to_string()));
+
+        let state = req.app_data::<web::Data<AppState>>().cloned();
+
+        Box::pin(async move {
+            let token = token.ok_or(DomainError::Unauthorized)?;
+            let state = state.ok_or(DomainError::Unauthorized)?;
+
+            Ok(state.auth_service.jwt().verify_token(token)?)
+        })
     }
 }
 
@@ -35,8 +66,26 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new() -> Arc<Self> {
-        todo!()
+    pub async fn new() -> DomainResult<Arc<Self>> {
+        dotenvy::dotenv().ok();
+        // Missing config is a boot-time misconfiguration, not something an
+        // HTTP client ever sees, so it's fine to just panic here.
+        let database_url =
+            std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+
+        let db = Database::new(&database_url)?;
+        db.migrate().await?;
+
+        Ok(Arc::new(Self {
+            auth_service: AuthService::new(db.as_ref())?,
+            blog_service: BlogService::new(db.as_ref()).await,
+        }))
+    }
+
+    /// Lets sibling modules (e.g. the auth middleware) reach the
+    /// JwtService without needing direct access to `auth_service`.
+    pub fn jwt(&self) -> &Arc<crate::infra::JwtService> {
+        self.auth_service.jwt()
     }
 }
 
@@ -134,9 +183,7 @@ pub mod posts {
         state: web::Data<AppState>,
         claims: Claims,
     ) -> DomainResult<Json<Vec<Post>>> {
-        Ok(Json(
-            state.blog_service.list(claims.get_user_id()).await?,
-        ))
+        Ok(Json(state.blog_service.list(claims.get_user_id()).await?))
     }
 
     #[post("/")]
