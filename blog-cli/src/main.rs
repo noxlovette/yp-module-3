@@ -3,12 +3,13 @@ use std::time::Duration;
 use anstyle::{AnsiColor, Style};
 use blog_client::{BlogClient, Transport};
 use clap::{Parser, Subcommand, builder::styling::Styles};
+use comfy_table::{Cell, ContentArrangement, Table, presets::UTF8_FULL};
 use indicatif::{ProgressBar, ProgressStyle};
 use miette::{Context, IntoDiagnostic, Result, miette};
 use tokio::{fs, io};
 
 const SUCCESS: Style = AnsiColor::Green.on_default().bold();
-const ACCENT: Style = AnsiColor::Cyan.on_default();
+const DIM: Style = AnsiColor::White.on_default().dimmed();
 
 const CLAP_STYLES: Styles = Styles::styled()
     .header(AnsiColor::Cyan.on_default().bold())
@@ -97,6 +98,48 @@ impl From<TokenStorage> for String {
     }
 }
 
+fn fmt_ts(ts: i64) -> String {
+    chrono::DateTime::from_timestamp(ts, 0)
+        .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string())
+        .unwrap_or_else(|| ts.to_string())
+}
+
+fn base_table() -> Table {
+    let mut table = Table::new();
+    table
+        .load_preset(UTF8_FULL)
+        .set_content_arrangement(ContentArrangement::Dynamic);
+    table
+}
+
+fn posts_table(posts: &[blog_proto::Post]) -> Table {
+    let mut table = base_table();
+    table.set_header(vec!["ID", "Title", "Author", "Created", "Updated"]);
+    for p in posts {
+        table.add_row(vec![
+            Cell::new(p.id),
+            Cell::new(&p.title),
+            Cell::new(p.author_id),
+            Cell::new(fmt_ts(p.created_at)),
+            Cell::new(fmt_ts(p.updated_at)),
+        ]);
+    }
+    table
+}
+
+fn post_table(p: &blog_proto::Post) -> Table {
+    let mut table = base_table();
+    table.set_header(vec!["Field", "Value"]);
+    table
+        .add_row(vec![Cell::new("ID"), Cell::new(p.id)])
+        .add_row(vec![Cell::new("Title"), Cell::new(&p.title)])
+        .add_row(vec![Cell::new("Author"), Cell::new(p.author_id)])
+        .add_row(vec![Cell::new("Created"), Cell::new(fmt_ts(p.created_at))])
+        .add_row(vec![Cell::new("Updated"), Cell::new(fmt_ts(p.updated_at))])
+        .add_row(vec![Cell::new("Content"), Cell::new(&p.content)]);
+    table
+}
+
 fn spinner(msg: &'static str) -> ProgressBar {
     let s = ProgressBar::new_spinner();
     s.set_style(
@@ -182,7 +225,7 @@ async fn main() -> Result<()> {
             let p = r
                 .into_diagnostic()
                 .wrap_err_with(|| format!("could not fetch post {id}"))?;
-            anstream::println!("{ACCENT}{}{ACCENT:#}\n{}", p.title, p.content);
+            anstream::println!("{}", post_table(&p));
         }
         Update { id, title, content } => {
             client.set_token(load_token().await?);
@@ -221,7 +264,12 @@ async fn main() -> Result<()> {
                 )
                 .await;
             s.finish_and_clear();
-            r.into_diagnostic().wrap_err("list failed")?;
+            let r = r.into_diagnostic().wrap_err("list failed")?;
+            if r.posts.is_empty() {
+                anstream::println!("{DIM}No posts here yet{DIM:#}");
+            } else {
+                anstream::println!("{}", posts_table(&r.posts));
+            }
         }
     }
 

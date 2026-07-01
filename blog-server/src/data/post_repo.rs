@@ -60,7 +60,6 @@ impl PostRepo {
         )
         .fetch_one(self.as_ref())
         .await
-        .map_err(Into::into)
     }
 
     /// Deletes a given post
@@ -96,7 +95,6 @@ impl PostRepo {
         )
         .fetch_one(self.as_ref())
         .await
-        .map_err(Into::into)
     }
 
     /// Gets all posts for given user
@@ -117,7 +115,6 @@ impl PostRepo {
         )
         .fetch_all(self.as_ref())
         .await
-        .map_err(Into::into)
     }
 
     /// Retrieves a post by its id
@@ -134,6 +131,5 @@ impl PostRepo {
         )
         .fetch_one(self.as_ref())
         .await
-        .map_err(Into::into)
     }
 }

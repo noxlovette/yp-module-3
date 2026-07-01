@@ -7,17 +7,12 @@ use crate::{
 };
 
 pub struct Limit(i64);
+#[derive(Default)]
 pub struct Offset(i64);
 
 impl Default for Limit {
     fn default() -> Self {
         Self(10)
-    }
-}
-
-impl Default for Offset {
-    fn default() -> Self {
-        Self(0)
     }
 }
 

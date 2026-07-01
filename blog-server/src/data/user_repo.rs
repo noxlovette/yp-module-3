@@ -53,30 +53,32 @@ impl UserRepo {
     pub async fn read_user(&self, reader: ReaderCaller) -> AuthResult {
         use ReaderCaller::*;
         match reader {
-            Id(id) => sqlx::query_as!(
-                UserDb,
-                r#"
+            Id(id) => {
+                sqlx::query_as!(
+                    UserDb,
+                    r#"
             SELECT id, username, email, password_hash, created_at
             FROM users
             WHERE id = $1
         "#,
-                id
-            )
-            .fetch_one(self.as_ref())
-            .await
-            .map_err(Into::into),
-            Username(username) => sqlx::query_as!(
-                UserDb,
-                r#"
+                    id
+                )
+                .fetch_one(self.as_ref())
+                .await
+            }
+            Username(username) => {
+                sqlx::query_as!(
+                    UserDb,
+                    r#"
         SELECT id, username, email, password_hash, created_at
         FROM users
         WHERE username = $1
     "#,
-                username.as_ref()
-            )
-            .fetch_one(self.as_ref())
-            .await
-            .map_err(Into::into),
+                    username.as_ref()
+                )
+                .fetch_one(self.as_ref())
+                .await
+            }
         }
     }
 
@@ -105,7 +107,6 @@ impl UserRepo {
         )
         .fetch_one(self.as_ref())
         .await
-        .map_err(Into::into)
     }
 
     pub async fn read_for_auth<'a>(

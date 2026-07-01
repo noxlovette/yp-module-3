@@ -10,7 +10,7 @@ impl Database {
     }
 
     pub async fn migrate(&self) -> Result<(), sqlx::migrate::MigrateError> {
-        MIGRATOR.run(&self.0).await.map_err(Into::into)
+        MIGRATOR.run(&self.0).await
     }
 }
 

@@ -32,15 +32,15 @@ pub enum Password {
     Hashed(String),
 }
 
-impl Into<String> for Email {
-    fn into(self) -> String {
-        self.0
+impl From<Email> for String {
+    fn from(val: Email) -> Self {
+        val.0
     }
 }
 
-impl Into<String> for Username {
-    fn into(self) -> String {
-        self.0
+impl From<Username> for String {
+    fn from(val: Username) -> Self {
+        val.0
     }
 }
 
@@ -113,9 +113,9 @@ impl LoginPayload {
     }
 }
 
-impl<'a> Into<LoginCaller<'a>> for &'a LoginPayload {
-    fn into(self) -> LoginCaller<'a> {
-        match self {
+impl<'a> From<&'a LoginPayload> for LoginCaller<'a> {
+    fn from(val: &'a LoginPayload) -> Self {
+        match val {
             LoginPayload::Email { email, .. } => LoginCaller::Email(email),
             LoginPayload::Username { username, .. } => {
                 LoginCaller::Username(username)
@@ -161,8 +161,7 @@ impl<'de> Deserialize<'de> for Username {
     }
 }
 
-pub static ARGON: LazyLock<Argon2> =
-    LazyLock::new(|| argon2::Argon2::default());
+pub static ARGON: LazyLock<Argon2> = LazyLock::new(argon2::Argon2::default);
 
 impl Password {
     const MAX: usize = 32;
