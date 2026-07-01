@@ -10,5 +10,26 @@ services:
       POSTGRES_DB: local
     volumes:
       - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  blog-server:
+    build:
+      context: .
+      dockerfile: blog-server/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://root:mysecretpassword@db:5432/local
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+    ports:
+      - 8080:8080
+      - 50051:50051
+
 volumes:
   pgdata:
