@@ -12,11 +12,11 @@ impl AsRef<PgPool> for UserRepo {
 }
 
 pub struct UserDb {
-    id: i64,
-    username: String,
-    email: String,
-    password_hash: String,
-    created_at: DateTime<Utc>,
+    pub id: i64,
+    pub username: String,
+    pub email: String,
+    pub password_hash: String,
+    pub created_at: DateTime<Utc>,
 }
 
 pub struct SignupDb {
@@ -96,5 +96,14 @@ impl UserRepo {
         .fetch_one(self.as_ref())
         .await
         .map_err(Into::into)
+    }
+
+    pub async fn read_password_hash(
+        &self,
+        id: i64,
+    ) -> Result<String, sqlx::Error> {
+        sqlx::query_scalar!("SELECT password_hash from users where id = $1", id)
+            .fetch_one(self.as_ref())
+            .await
     }
 }

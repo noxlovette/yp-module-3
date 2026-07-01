@@ -19,6 +19,15 @@ pub struct SignupResponse {
     user: User,
 }
 
+impl From<(Token, User)> for SignupResponse {
+    fn from(value: (Token, User)) -> Self {
+        Self {
+            token: value.0,
+            user: value.1,
+        }
+    }
+}
+
 impl AuthService {
     pub fn new(p: &PgPool) -> DomainResult<Arc<Self>> {
         Ok(Arc::new(Self {
@@ -32,8 +41,10 @@ impl AuthService {
         &self,
         p: SignupPayload,
     ) -> DomainResult<SignupResponse> {
-        let u = self.repo.insert_user(p.into()).await?;
-        todo!()
+        let u: User = self.repo.insert_user(p.into()).await?.into();
+        let token = self.jwt.generate_token(u.id, u.username.as_ref())?;
+
+        Ok((token, u).into())
     }
 
     /// Compares the given password with the one stored in the db

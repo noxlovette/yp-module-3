@@ -1,4 +1,4 @@
-use crate::{domain::ParsingError, infra::JwtError};
+use crate::infra::JwtError;
 use thiserror::Error;
 
 pub type DomainResult<T> = Result<T, DomainError>;
@@ -33,4 +33,20 @@ impl From<sqlx::Error> for DomainError {
     fn from(value: sqlx::Error) -> Self {
         todo!()
     }
+}
+
+#[derive(Debug, Error)]
+pub enum ParsingError {
+    #[error("{entity} must be between {min} and {max} characters")]
+    InvalidLength {
+        entity: &'static str,
+        min: usize,
+        max: usize,
+    },
+
+    #[error("{0} containes invalid char")]
+    InvalidChar(&'static str),
+
+    #[error("invalid format for {0}")]
+    InvalidFormat(&'static str),
 }

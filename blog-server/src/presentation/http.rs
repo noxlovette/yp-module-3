@@ -22,7 +22,8 @@ impl FromRequest for Claims {
         payload: &mut actix_web::dev::Payload,
     ) -> Self::Future {
         todo!(
-            "validate exp, validate the token, get the jwtservice from appstate"
+            "validate exp, validate the token, get the jwtservice from \
+             appstate"
         )
     }
 }

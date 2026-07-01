@@ -1,8 +1,13 @@
+use crate::{data::UserDb, domain::ParsingError};
+use argon2::{
+    Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
+    password_hash::SaltString,
+};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize, de};
+use std::sync::LazyLock;
+use thiserror::Error;
 use unicode_segmentation::UnicodeSegmentation;
-
-use crate::domain::ParsingError;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(transparent)]
@@ -16,26 +21,48 @@ impl From<&str> for Username {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(transparent)]
-struct Email(String);
+pub struct Email(String);
 
 #[derive(Debug, Clone)]
-struct Password(String);
+pub enum Password {
+    Plain(String),
+    Hashed(String),
+}
 
 #[derive(Serialize, Debug, Clone)]
 pub struct User {
-    id: i64,
-    username: Username,
-    email: Email,
+    pub id: i64,
+    pub username: Username,
+    pub email: Email,
     #[serde(skip_serializing)]
-    password_hash: Password,
-    created_at: DateTime<Utc>,
+    pub password_hash: Password,
+    pub created_at: DateTime<Utc>,
+}
+impl From<UserDb> for User {
+    fn from(value: UserDb) -> Self {
+        let UserDb {
+            id,
+            username,
+            email,
+            password_hash,
+            created_at,
+        } = value;
+
+        Self {
+            id,
+            username: Username::new(username),
+            email: Email::new(email),
+            password_hash: Password::hashed(password_hash),
+            created_at,
+        }
+    }
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct SignupPayload {
-    username: Username,
-    password: Password,
-    email: Email,
+    pub username: Username,
+    pub password: Password,
+    pub email: Email,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -87,14 +114,24 @@ impl<'de> Deserialize<'de> for Username {
     }
 }
 
+pub static ARGON: LazyLock<Argon2> =
+    LazyLock::new(|| argon2::Argon2::default());
+
 impl Password {
     const MAX: usize = 32;
     const MIN: usize = 8;
 
-    pub fn new(s: impl Into<String>) -> Self {
-        Self(s.into())
+    /// Creates a Hashed instance of Password
+    pub fn hashed(s: impl Into<String>) -> Self {
+        Self::Hashed(s.into())
     }
 
+    /// Creates a Plain instance of Password
+    pub fn plain(s: impl Into<String>) -> Self {
+        Self::Plain(s.into())
+    }
+
+    /// Parses a string into a plain password
     fn parse(raw: String) -> Result<Self, ParsingError> {
         if !(Self::MIN..=Self::MAX).contains(&raw.graphemes(true).count()) {
             return Err(ParsingError::InvalidLength {
@@ -104,7 +141,53 @@ impl Password {
             });
         }
 
-        Ok(Self(raw))
+        Ok(Self::plain(raw))
+    }
+
+    /// Hashes a password. Argon2
+    pub fn hash(self) -> Result<Self, PasswordError> {
+        match self {
+            Password::Plain(p) => {
+                let salt = SaltString::generate(
+                    &mut argon2::password_hash::rand_core::OsRng,
+                );
+
+                Ok(Self::hashed(
+                    ARGON.hash_password(p.as_bytes(), &salt)?.to_string(),
+                ))
+            }
+            _ => Err(PasswordError::PlainRequired),
+        }
+    }
+
+    /// Validates a password. Should be applied to Plain versions only. The
+    /// other should be hashed
+    pub fn validate(&self, other: &Password) -> Result<(), PasswordError> {
+        match self {
+            Self::Hashed(_) => Err(PasswordError::PlainRequired),
+            Self::Plain(p) => match other {
+                Self::Hashed(o) => ARGON
+                    .verify_password(p.as_bytes(), &PasswordHash::new(o)?)
+                    .map_err(Into::into),
+                Self::Plain(_) => Err(PasswordError::HashRequired),
+            },
+        }
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum PasswordError {
+    #[error("Plain string passed where hash was expected")]
+    HashRequired,
+    #[error("Hashed string passed where plain was expected")]
+    PlainRequired,
+    #[error("hashing/verification error: {0}")]
+    HashingFailed(String),
+}
+
+impl From<argon2::password_hash::Error> for PasswordError {
+    fn from(value: argon2::password_hash::Error) -> Self {
+        Self::HashingFailed(value.to_string())
     }
 }
 

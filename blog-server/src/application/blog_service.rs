@@ -8,6 +8,12 @@ use sqlx::PgPool;
 
 pub struct BlogService(PostRepo);
 
+impl AsRef<PostRepo> for BlogService {
+    fn as_ref(&self) -> &PostRepo {
+        &self.0
+    }
+}
+
 pub enum PostReader {
     List { author_id: i64 },
     Single { author_id: i64, id: i64 },
@@ -29,6 +35,7 @@ pub enum ReadOut {
 }
 impl TryFrom<ReadOut> for Vec<Post> {
     type Error = ReadOut;
+
     fn try_from(value: ReadOut) -> Result<Self, Self::Error> {
         match value {
             ReadOut::List(v) => Ok(v),
@@ -39,6 +46,7 @@ impl TryFrom<ReadOut> for Vec<Post> {
 
 impl TryFrom<ReadOut> for Post {
     type Error = ReadOut;
+
     fn try_from(value: ReadOut) -> Result<Self, Self::Error> {
         match value {
             ReadOut::One(p) => Ok(p),

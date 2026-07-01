@@ -7,7 +7,7 @@ edition = "2024"
 actix-cors = "0.7.1"
 actix-web = "4.14.0"
 actix-web-httpauth = "0.8.2"
-argon2 = "0.5.3"
+argon2 = { version = "0.5.3", features = ["std"] }
 chrono = { version = "0.4.45", features = ["serde"] }
 dotenvy = "0.15.7"
 jsonwebtoken = "10.4.0"
