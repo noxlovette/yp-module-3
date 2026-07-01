@@ -18,6 +18,7 @@ tracing = "0.1.44"
 tracing-subscriber = "0.3.23"
 blog-proto = { path = "../blog-proto" }
 tonic.workspace = true
+tokio = { version = "1", features = ["macros"] }
 sqlx = { version = "0.9", features = [
     "runtime-tokio",
     "tls-rustls-ring-native-roots",

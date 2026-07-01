@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use blog_proto::{
-    AuthResponse, CreatePostRequest, CreatePostResponse, DeletePostRequest,
+    CreatePostRequest, CreatePostResponse, DeletePostRequest,
     DeletePostResponse, GetPostRequest, GetPostResponse, ListPostsRequest,
-    ListPostsResponse, LoginRequest, Post as ProtoPost, RegisterRequest,
-    UpdatePostRequest, UpdatePostResponse,
+    ListPostsResponse, LoginRequest, LoginResponse, Post as ProtoPost,
+    RegisterRequest, RegisterResponse, UpdatePostRequest, UpdatePostResponse,
     blog_service_server::BlogService as BlogServiceTrait,
 };
 use tonic::{Request, Response, Status};
@@ -98,7 +98,7 @@ impl BlogServiceTrait for BlogGrpcService {
     async fn register(
         &self,
         request: Request<RegisterRequest>,
-    ) -> Result<Response<AuthResponse>, Status> {
+    ) -> Result<Response<RegisterResponse>, Status> {
         let req = request.into_inner();
 
         let payload = SignupPayload {
@@ -111,7 +111,7 @@ impl BlogServiceTrait for BlogGrpcService {
 
         let user_token = self.auth.signup(payload).await?;
 
-        Ok(Response::new(AuthResponse {
+        Ok(Response::new(RegisterResponse {
             token: user_token.token().as_str().to_string(),
         }))
     }
@@ -119,7 +119,7 @@ impl BlogServiceTrait for BlogGrpcService {
     async fn login(
         &self,
         request: Request<LoginRequest>,
-    ) -> Result<Response<AuthResponse>, Status> {
+    ) -> Result<Response<LoginResponse>, Status> {
         let req = request.into_inner();
 
         let payload = LoginPayload::Username {
@@ -131,7 +131,7 @@ impl BlogServiceTrait for BlogGrpcService {
 
         let user_token = self.auth.login(payload).await?;
 
-        Ok(Response::new(AuthResponse {
+        Ok(Response::new(LoginResponse {
             token: user_token.token().as_str().to_string(),
         }))
     }

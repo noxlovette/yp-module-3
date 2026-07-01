@@ -1,7 +1,9 @@
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, web};
 use actix_web_httpauth::middleware::HttpAuthentication;
+use blog_proto::blog_service_server::BlogServiceServer;
 use blog_server::presentation::{
+    grpc::BlogGrpcService,
     http::{
         AppState,
         auth::{login, register},
@@ -10,6 +12,7 @@ use blog_server::presentation::{
     middleware::jwt_validator,
 };
 use std::time::Duration;
+use tonic::transport::Server as GrpcServer;
 
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
@@ -17,7 +20,10 @@ async fn main() -> anyhow::Result<()> {
         .await
         .expect("failed to initialize app state");
 
-    HttpServer::new(move || {
+    let grpc_service =
+        BlogGrpcService::new(state.auth_service(), state.blog_service());
+
+    let http_server = HttpServer::new(move || {
         let cors = Cors::default()
             .allowed_origin("http://frontend:4000")
             .allowed_origin("http://localhost:4000")
@@ -53,8 +59,16 @@ async fn main() -> anyhow::Result<()> {
     })
     .bind(("0.0.0.0", 3000))?
     .keep_alive(Duration::from_secs(80))
-    .run()
-    .await?;
+    .run();
+
+    let grpc_server = GrpcServer::builder()
+        .add_service(BlogServiceServer::new(grpc_service))
+        .serve("0.0.0.0:50051".parse()?);
+
+    tokio::select! {
+        res = http_server => res.map_err(anyhow::Error::from)?,
+        res = grpc_server => res.map_err(anyhow::Error::from)?,
+    }
 
     Ok(())
 }

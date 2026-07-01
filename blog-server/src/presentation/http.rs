@@ -87,6 +87,16 @@ impl AppState {
     pub fn jwt(&self) -> &Arc<crate::infra::JwtService> {
         self.auth_service.jwt()
     }
+
+    /// Lets the gRPC server share the same `AuthService`/`BlogService`
+    /// instances as HTTP, instead of opening a second DB connection pool.
+    pub fn auth_service(&self) -> Arc<AuthService> {
+        self.auth_service.clone()
+    }
+
+    pub fn blog_service(&self) -> Arc<BlogService> {
+        self.blog_service.clone()
+    }
 }
 
 type IdPath = web::Path<i64>;
