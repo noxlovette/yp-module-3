@@ -21,4 +21,7 @@ pub enum BlogClientError {
 
     #[error("invalid request: {0}")]
     InvalidRequest(String),
+
+    #[error("invalid params. offset and limit must be positive")]
+    InvalidParams,
 }

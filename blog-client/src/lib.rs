@@ -16,8 +16,8 @@ use crate::{
 };
 
 pub enum Transport {
-    Http(String),
-    Grpc(String),
+    Http(Option<String>),
+    Grpc,
 }
 
 pub struct BlogClient {
@@ -51,6 +51,27 @@ impl Offset {
     }
 }
 
+impl TryFrom<i64> for Limit {
+    type Error = BlogClientError;
+    fn try_from(value: i64) -> Result<Self, Self::Error> {
+        if value.is_negative() {
+            return Err(BlogClientError::InvalidParams);
+        }
+
+        Ok(Self(value))
+    }
+}
+impl TryFrom<i64> for Offset {
+    type Error = BlogClientError;
+    fn try_from(value: i64) -> Result<Self, Self::Error> {
+        if value.is_negative() {
+            return Err(BlogClientError::InvalidParams);
+        }
+
+        Ok(Self(value))
+    }
+}
+
 impl Limit {
     pub fn get(&self) -> i64 {
         self.0
@@ -75,12 +96,16 @@ impl BlogClient {
     pub async fn new(transport: Transport) -> BlogClientResult<Self> {
         match transport {
             Transport::Http(base_url) => Ok(Self {
-                kind: ClientKind::Http(HttpClient::new(base_url)),
+                kind: ClientKind::Http(HttpClient::new(
+                    base_url.unwrap_or("http://0.0.0.0:8080".into()),
+                )),
                 token: None,
             }),
-            Transport::Grpc(addr) => Ok(Self {
+            Transport::Grpc => Ok(Self {
                 kind: ClientKind::Grpc(GrpcClient::new(
-                    Endpoint::from_shared(addr)?.connect().await?,
+                    Endpoint::from_shared("http://0.0.0.0:50051")?
+                        .connect()
+                        .await?,
                 )),
                 token: None,
             }),

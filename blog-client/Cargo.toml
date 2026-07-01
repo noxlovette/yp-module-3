@@ -11,4 +11,4 @@ thiserror.workspace = true
 anyhow.workspace = true
 reqwest = { version = "0.13", features = ["json", "query"] }
 serde = { version = "1", features = ["derive"] }
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tokio.workspace = true
