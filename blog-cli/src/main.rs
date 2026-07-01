@@ -84,9 +84,11 @@ impl TokenStorage {
     async fn from_file() -> io::Result<Self> {
         Ok(Self(fs::read_to_string(TOKEN_PATH).await?))
     }
+
     async fn into_file(self) -> io::Result<()> {
         fs::write(TOKEN_PATH, self.0).await
     }
+
     fn new(t: String) -> Self {
         Self(t)
     }
