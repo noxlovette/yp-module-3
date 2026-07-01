@@ -1,5 +1,5 @@
 use actix_cors::Cors;
-use actix_web::{App, HttpServer, web};
+use actix_web::{App, HttpServer, middleware::Logger, web};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use blog_proto::blog_service_server::BlogServiceServer;
 use blog_server::presentation::{
@@ -16,6 +16,8 @@ use tonic::transport::Server as GrpcServer;
 
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
+    blog_server::infra::init_logging();
+
     let state = AppState::new()
         .await
         .expect("failed to initialize app state");
@@ -32,6 +34,8 @@ async fn main() -> anyhow::Result<()> {
             .allowed_methods(vec!["GET", "POST", "DELETE", "PUT", "OPTIONS"]);
 
         App::new()
+            .wrap(Logger::default())
+            .wrap(Logger::new("%a %{User-Agent}i"))
             .wrap(cors)
             .app_data(web::Data::new(state.clone()))
             .service(
@@ -64,6 +68,9 @@ async fn main() -> anyhow::Result<()> {
     let grpc_server = GrpcServer::builder()
         .add_service(BlogServiceServer::new(grpc_service))
         .serve("0.0.0.0:50051".parse()?);
+
+    tracing::info!("http server listening on 0.0.0.0:3000");
+    tracing::info!("grpc server listening on 0.0.0.0:50051");
 
     tokio::select! {
         res = http_server => res.map_err(anyhow::Error::from)?,

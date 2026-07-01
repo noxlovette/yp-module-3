@@ -37,6 +37,7 @@ impl BlogService {
         let post: Post = self.as_ref().get_post(id).await?.into();
         post.validate_ownership(user_id)?;
         self.as_ref().delete_post(id).await?;
+        tracing::info!(user_id, post_id = id, "post deleted");
         Ok(())
     }
 
@@ -46,7 +47,9 @@ impl BlogService {
         user_id: i64,
         p: PostUpsert,
     ) -> DomainResult<Post> {
-        Ok(self.as_ref().insert_post(&p.into_db(user_id)).await?.into())
+        let post: Post = self.as_ref().insert_post(&p.into_db(user_id)).await?.into();
+        tracing::info!(user_id, post_id = post.id(), "post created");
+        Ok(post)
     }
 
     /// Updates a post, validates ownership
@@ -59,6 +62,9 @@ impl BlogService {
         let post: Post = self.as_ref().get_post(post_id).await?.into();
         post.validate_ownership(user_id)?;
 
-        Ok(self.as_ref().update_post(&p.into_db(user_id)).await?.into())
+        let updated: Post =
+            self.as_ref().update_post(&p.into_db(user_id)).await?.into();
+        tracing::info!(user_id, post_id, "post updated");
+        Ok(updated)
     }
 }

@@ -1,5 +1,9 @@
+use std::ops::Deref;
+
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
+
+use crate::domain::{Limit, Offset};
 
 /// The db version of the post
 pub struct PostDb {
@@ -99,14 +103,20 @@ impl PostRepo {
     pub async fn list_posts(
         &self,
         author_id: i64,
+        limit: Option<Limit>,
+        offset: Option<Offset>,
     ) -> Result<Vec<PostDb>, sqlx::Error> {
         sqlx::query_as!(
             PostDb,
             r#"
            SELECT * FROM posts
            WHERE author_id = $1
+           ORDER BY created_at
+           LIMIT $2 OFFSET $3
            "#,
-            author_id
+            author_id,
+            limit.unwrap_or_default().get(),
+            offset.unwrap_or_default().get()
         )
         .fetch_all(self.as_ref())
         .await

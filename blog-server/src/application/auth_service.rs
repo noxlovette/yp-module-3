@@ -51,6 +51,11 @@ impl AuthService {
     /// Creates a new user
     pub async fn signup(&self, p: SignupPayload) -> DomainResult<UserToken> {
         let u: User = self.repo.insert_user(p.try_into()?).await?.into();
+        tracing::info!(
+            user_id = u.id,
+            username = u.username.as_ref(),
+            "user signed up"
+        );
 
         Ok((self.jwt.generate_token(u.id, u.username.as_ref())?, u).into())
     }
@@ -61,8 +66,13 @@ impl AuthService {
     pub async fn login(&self, p: LoginPayload) -> DomainResult<UserToken> {
         let u = self.repo.read_for_auth((&p).into()).await?;
         let h = Password::new_hashed(&u.password_hash);
-        p.get_password().validate(&h)?;
 
+        if let Err(e) = p.get_password().validate(&h) {
+            tracing::warn!(user_id = u.id, "login failed: bad password");
+            return Err(e.into());
+        }
+
+        tracing::info!(user_id = u.id, "user logged in");
         Ok((self.jwt.generate_token(u.id, &u.username)?, u.into()).into())
     }
 }

@@ -1,5 +1,7 @@
 use crate::{domain::Username, infra::Token, presentation::http::AppState};
-use actix_web::{Error, HttpMessage, dev::ServiceRequest, error::ErrorUnauthorized, web};
+use actix_web::{
+    Error, HttpMessage, dev::ServiceRequest, error::ErrorUnauthorized, web,
+};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 /// What handlers/other middleware see once a request has passed

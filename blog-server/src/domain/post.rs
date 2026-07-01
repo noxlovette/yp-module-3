@@ -6,6 +6,32 @@ use crate::{
     domain::{DomainError, DomainResult},
 };
 
+pub struct Limit(i64);
+pub struct Offset(i64);
+
+impl Default for Limit {
+    fn default() -> Self {
+        Self(10)
+    }
+}
+
+impl Default for Offset {
+    fn default() -> Self {
+        Self(0)
+    }
+}
+
+impl Offset {
+    pub fn get(&self) -> i64 {
+        self.0
+    }
+}
+
+impl Limit {
+    pub fn get(&self) -> i64 {
+        self.0
+    }
+}
 #[derive(Debug, Serialize)]
 pub struct Post {
     id: i64,

@@ -87,7 +87,12 @@ impl BlogGrpcService {
             .auth
             .jwt()
             .verify_token(Token::new(token.to_string()))
-            .map_err(|_| Status::unauthenticated("invalid or expired token"))?;
+            .map_err(|_| {
+                tracing::warn!(
+                    "grpc request rejected: invalid or expired token"
+                );
+                Status::unauthenticated("invalid or expired token")
+            })?;
 
         Ok(claims.get_user_id())
     }
@@ -141,6 +146,7 @@ impl BlogServiceTrait for BlogGrpcService {
         request: Request<CreatePostRequest>,
     ) -> Result<Response<CreatePostResponse>, Status> {
         let user_id = self.authenticate(&request)?;
+        tracing::Span::current().record("user_id", user_id);
         let req = request.into_inner();
 
         let post = self
@@ -164,6 +170,7 @@ impl BlogServiceTrait for BlogGrpcService {
         request: Request<UpdatePostRequest>,
     ) -> Result<Response<UpdatePostResponse>, Status> {
         let user_id = self.authenticate(&request)?;
+        tracing::Span::current().record("user_id", user_id);
         let req = request.into_inner();
 
         let post = self
@@ -188,6 +195,7 @@ impl BlogServiceTrait for BlogGrpcService {
         request: Request<DeletePostRequest>,
     ) -> Result<Response<DeletePostResponse>, Status> {
         let user_id = self.authenticate(&request)?;
+        tracing::Span::current().record("user_id", user_id);
         let id = request.into_inner().id;
 
         self.blog.delete(user_id, id).await?;
@@ -200,6 +208,7 @@ impl BlogServiceTrait for BlogGrpcService {
         request: Request<GetPostRequest>,
     ) -> Result<Response<GetPostResponse>, Status> {
         let user_id = self.authenticate(&request)?;
+        tracing::Span::current().record("user_id", user_id);
         let id = request.into_inner().id;
         let post = self.blog.get(user_id, id).await?;
 
@@ -213,6 +222,7 @@ impl BlogServiceTrait for BlogGrpcService {
         request: Request<ListPostsRequest>,
     ) -> Result<Response<ListPostsResponse>, Status> {
         let user_id = self.authenticate(&request)?;
+        tracing::Span::current().record("user_id", user_id);
         let posts = self.blog.list(user_id).await?;
 
         Ok(Response::new(ListPostsResponse {
