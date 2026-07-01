@@ -38,7 +38,7 @@ fn bearer(token: &str) -> (header::HeaderName, String) {
 }
 
 #[sqlx::test]
-async fn list_posts_requires_a_bearer_token(pool: PgPool) {
+async fn list_posts_is_public(pool: PgPool) {
     let state = common::app_state(&pool).await;
     let app = test::init_service(
         App::new()
@@ -49,25 +49,7 @@ async fn list_posts_requires_a_bearer_token(pool: PgPool) {
 
     let req = test::TestRequest::get().uri("/api/posts/").to_request();
     let resp = test::call_service(&app, req).await;
-    assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
-}
-
-#[sqlx::test]
-async fn list_posts_rejects_a_garbled_token(pool: PgPool) {
-    let state = common::app_state(&pool).await;
-    let app = test::init_service(
-        App::new()
-            .app_data(web::Data::from(state))
-            .configure(common::configure_routes),
-    )
-    .await;
-
-    let req = test::TestRequest::get()
-        .uri("/api/posts/")
-        .insert_header(bearer("not-a-real-jwt"))
-        .to_request();
-    let resp = test::call_service(&app, req).await;
-    assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+    assert_eq!(resp.status(), StatusCode::OK);
 }
 
 #[sqlx::test]
@@ -88,29 +70,6 @@ async fn get_post_with_a_non_numeric_id_is_not_found(pool: PgPool) {
         .to_request();
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::NOT_FOUND);
-}
-
-#[sqlx::test]
-async fn get_post_owned_by_another_user_is_forbidden(pool: PgPool) {
-    let state = common::app_state(&pool).await;
-    let alice = seed_user(&pool, "alice").await;
-    let bob = seed_user(&pool, "bob").await;
-    let bobs_post = seed_post(&pool, bob, "bob's private post").await;
-    let alice_token = state.jwt().generate_token(alice, "alice").unwrap();
-
-    let app = test::init_service(
-        App::new()
-            .app_data(web::Data::from(state))
-            .configure(common::configure_routes),
-    )
-    .await;
-
-    let req = test::TestRequest::get()
-        .uri(&format!("/api/posts/{bobs_post}"))
-        .insert_header(bearer(alice_token.as_str()))
-        .to_request();
-    let resp = test::call_service(&app, req).await;
-    assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 }
 
 #[sqlx::test]

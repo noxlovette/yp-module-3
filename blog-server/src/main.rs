@@ -26,12 +26,21 @@ async fn main() -> anyhow::Result<()> {
         BlogGrpcService::new(state.auth_service(), state.blog_service());
 
     let http_server = HttpServer::new(move || {
-        let cors = Cors::default()
-            .allowed_origin("http://frontend:4000")
-            .allowed_origin("http://localhost:4000")
-            .allow_any_header()
-            .max_age(3600)
-            .allowed_methods(vec!["GET", "POST", "DELETE", "PUT", "OPTIONS"]);
+        let cors = if cfg!(debug_assertions) {
+            Cors::default()
+                .allow_any_header()
+                .allow_any_method()
+                .allow_any_origin()
+        } else {
+            Cors::default()
+                .allowed_origin("http://frontend:4000")
+                .allowed_origin("http://localhost:4000")
+                .allow_any_header()
+                .max_age(3600)
+                .allowed_methods(vec![
+                    "GET", "POST", "DELETE", "PUT", "OPTIONS",
+                ])
+        };
 
         App::new()
             .wrap(Logger::default())
@@ -61,7 +70,7 @@ async fn main() -> anyhow::Result<()> {
                     ),
             )
     })
-    .bind(("0.0.0.0", 3000))?
+    .bind(("0.0.0.0", 8080))?
     .keep_alive(Duration::from_secs(80))
     .run();
 
@@ -69,7 +78,7 @@ async fn main() -> anyhow::Result<()> {
         .add_service(BlogServiceServer::new(grpc_service))
         .serve("0.0.0.0:50051".parse()?);
 
-    tracing::info!("http server listening on 0.0.0.0:3000");
+    tracing::info!("http server listening on 0.0.0.0:8080");
     tracing::info!("grpc server listening on 0.0.0.0:50051");
 
     tokio::select! {

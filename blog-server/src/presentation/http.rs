@@ -163,15 +163,9 @@ pub mod posts {
     #[get("/{id}")]
     pub async fn get_post(
         state: web::Data<AppState>,
-        claims: Claims,
         path: IdPath,
     ) -> DomainResult<Json<Post>> {
-        Ok(Json(
-            state
-                .blog_service
-                .get(claims.get_user_id(), path.into_inner())
-                .await?,
-        ))
+        Ok(Json(state.blog_service.get(path.into_inner()).await?))
     }
 
     #[put("/{id}")]
@@ -209,20 +203,16 @@ pub mod posts {
     #[get("/")]
     pub async fn list_posts(
         state: web::Data<AppState>,
-        claims: Claims,
         query: web::Query<ListQuery>,
     ) -> DomainResult<Json<Vec<Post>>> {
         let query = query.into_inner();
         Ok(Json(
             state
                 .blog_service
-                .list(
-                    claims.get_user_id(),
-                    Pagination::new(
-                        query.offset.map(Offset::new),
-                        query.limit.map(Limit::new),
-                    ),
-                )
+                .list(Pagination::new(
+                    query.offset.map(Offset::new),
+                    query.limit.map(Limit::new),
+                ))
                 .await?,
         ))
     }

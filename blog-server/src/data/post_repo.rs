@@ -102,7 +102,6 @@ impl PostRepo {
     /// Gets all posts for given user
     pub async fn list_posts(
         &self,
-        author_id: i64,
         limit: Limit,
         offset: Offset,
     ) -> Result<Vec<PostDb>, sqlx::Error> {
@@ -110,11 +109,9 @@ impl PostRepo {
             PostDb,
             r#"
            SELECT * FROM posts
-           WHERE author_id = $1
            ORDER BY created_at
-           LIMIT $2 OFFSET $3
+           LIMIT $1 OFFSET $2
            "#,
-            author_id,
             limit.get(),
             offset.get()
         )

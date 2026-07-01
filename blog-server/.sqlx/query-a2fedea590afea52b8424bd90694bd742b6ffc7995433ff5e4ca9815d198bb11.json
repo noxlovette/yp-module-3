@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n           SELECT * FROM posts\n           WHERE author_id = $1\n           ORDER BY created_at\n           LIMIT $2 OFFSET $3\n           ",
+  "query": "\n           SELECT * FROM posts\n           ORDER BY created_at\n           LIMIT $1 OFFSET $2\n           ",
   "describe": {
     "columns": [
       {
@@ -73,7 +73,6 @@
     "parameters": {
       "Left": [
         "Int8",
-        "Int8",
         "Int8"
       ]
     },
@@ -86,5 +85,5 @@
       false
     ]
   },
-  "hash": "81b11185541f5d9b29d551bdc1492cc2545416eda69fb819c9192c2b9139391e"
+  "hash": "a2fedea590afea52b8424bd90694bd742b6ffc7995433ff5e4ca9815d198bb11"
 }

@@ -32,38 +32,52 @@ struct Cli {
 #[derive(Subcommand, Debug, Clone)]
 enum Commands {
     Register {
+        #[arg(long)]
         username: String,
+        #[arg(long)]
         email: String,
+        #[arg(long)]
         password: String,
     },
     Login {
+        #[arg(long)]
         username: String,
+        #[arg(long)]
         password: String,
     },
     Create {
+        #[arg(long)]
         title: String,
+        #[arg(long)]
         content: String,
     },
     Get {
+        #[arg(long)]
         id: i64,
     },
     Update {
+        #[arg(long)]
         id: i64,
+        #[arg(long)]
         title: Option<String>,
+        #[arg(long)]
         content: Option<String>,
     },
     Delete {
+        #[arg(long)]
         id: i64,
     },
     List {
+        #[arg(long)]
         limit: Option<i64>,
+        #[arg(long)]
         offset: Option<i64>,
     },
 }
 
 struct TokenStorage(String);
 
-const TOKEN_PATH: &str = "./blog-token";
+const TOKEN_PATH: &str = "./.blog-token";
 
 impl TokenStorage {
     async fn from_file() -> io::Result<Self> {

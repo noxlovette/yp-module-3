@@ -40,7 +40,7 @@ async fn insert_then_get_post(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn list_posts_only_returns_the_given_authors_posts(pool: PgPool) {
+async fn list_posts_cap(pool: PgPool) {
     let alice = seed_user(&pool, "alice").await;
     let bob = seed_user(&pool, "bob").await;
     let repo = PostRepo::new(&pool);
@@ -53,11 +53,10 @@ async fn list_posts_only_returns_the_given_authors_posts(pool: PgPool) {
     repo.insert_post(&upsert(bob, "b0", "x")).await.unwrap();
 
     let page = repo
-        .list_posts(alice, Limit::new(2), Offset::new(0))
+        .list_posts(Limit::new(2), Offset::new(0))
         .await
         .unwrap();
     assert_eq!(page.len(), 2, "limit=2 should cap the page size");
-    assert!(page.iter().all(|p| p.author_id == alice));
 }
 
 #[sqlx::test]

@@ -220,10 +220,8 @@ impl BlogServiceTrait for BlogGrpcService {
         &self,
         request: Request<GetPostRequest>,
     ) -> Result<Response<GetPostResponse>, Status> {
-        let user_id = self.authenticate(&request)?;
-        tracing::Span::current().record("user_id", user_id);
         let id = request.into_inner().id;
-        let post = self.blog.get(user_id, id).await?;
+        let post = self.blog.get(id).await?;
 
         Ok(Response::new(GetPostResponse {
             post: Some(post.into()),
@@ -234,18 +232,13 @@ impl BlogServiceTrait for BlogGrpcService {
         &self,
         request: Request<ListPostsRequest>,
     ) -> Result<Response<ListPostsResponse>, Status> {
-        let user_id = self.authenticate(&request)?;
-        tracing::Span::current().record("user_id", user_id);
         let req = request.into_inner();
         let posts = self
             .blog
-            .list(
-                user_id,
-                Pagination::new(
-                    req.offset.map(Offset::new),
-                    req.limit.map(Limit::new),
-                ),
-            )
+            .list(Pagination::new(
+                req.offset.map(Offset::new),
+                req.limit.map(Limit::new),
+            ))
             .await?;
 
         Ok(Response::new(ListPostsResponse {

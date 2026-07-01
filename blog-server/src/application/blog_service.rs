@@ -30,23 +30,15 @@ impl BlogService {
         Arc::new(Self(PostRepo::new(p)))
     }
 
-    /// Lists every post owned by `author_id`.
-    pub async fn list(
-        &self,
-        author_id: i64,
-        p: Pagination,
-    ) -> DomainResult<Vec<Post>> {
-        let posts = self
-            .as_ref()
-            .list_posts(author_id, p.limit, p.offset)
-            .await?;
+    /// Lists every post available
+    pub async fn list(&self, p: Pagination) -> DomainResult<Vec<Post>> {
+        let posts = self.as_ref().list_posts(p.limit, p.offset).await?;
         Ok(posts.into_iter().map(Into::into).collect())
     }
 
-    /// Fetches a single post, ensuring `user_id` is the owner.
-    pub async fn get(&self, user_id: i64, id: i64) -> DomainResult<Post> {
+    /// Fetches a single post
+    pub async fn get(&self, id: i64) -> DomainResult<Post> {
         let post: Post = self.as_ref().get_post(id).await?.into();
-        post.validate_ownership(user_id)?;
         Ok(post)
     }
 
