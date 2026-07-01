@@ -23,6 +23,8 @@ pub enum DomainError {
     Parsing(#[from] ParsingError),
     #[error("password error: {0}")]
     Password(#[from] PasswordError),
+    #[error("database error: {0}")]
+    Database(String),
 }
 
 impl From<JwtError> for DomainError {
@@ -33,7 +35,10 @@ impl From<JwtError> for DomainError {
 
 impl From<sqlx::Error> for DomainError {
     fn from(value: sqlx::Error) -> Self {
-        todo!()
+        match value {
+            sqlx::Error::RowNotFound => DomainError::PostNotFound,
+            other => DomainError::Database(other.to_string()),
+        }
     }
 }
 

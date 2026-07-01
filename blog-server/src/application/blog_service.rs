@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     data::PostRepo,
-    domain::{DomainError, DomainResult, Post, PostUpsert},
+    domain::{DomainResult, Post, PostUpsert},
 };
 use sqlx::PgPool;
 
@@ -14,79 +14,51 @@ impl AsRef<PostRepo> for BlogService {
     }
 }
 
-pub enum PostReader {
-    List { author_id: i64 },
-    Single { author_id: i64, id: i64 },
-}
-
-impl PostReader {
-    pub fn list(id: i64) -> Self {
-        Self::List { author_id: id }
-    }
-
-    pub fn single(author_id: i64, id: i64) -> Self {
-        Self::Single { author_id, id }
-    }
-}
-
-pub enum ReadOut {
-    List(Vec<Post>),
-    One(Post),
-}
-impl TryFrom<ReadOut> for Vec<Post> {
-    type Error = ReadOut;
-
-    fn try_from(value: ReadOut) -> Result<Self, Self::Error> {
-        match value {
-            ReadOut::List(v) => Ok(v),
-            other => Err(other),
-        }
-    }
-}
-
-impl TryFrom<ReadOut> for Post {
-    type Error = ReadOut;
-
-    fn try_from(value: ReadOut) -> Result<Self, Self::Error> {
-        match value {
-            ReadOut::One(p) => Ok(p),
-            other => Err(other),
-        }
-    }
-}
-
-impl From<ReadOut> for DomainError {
-    fn from(_: ReadOut) -> Self {
-        DomainError::TypeMismatch
-    }
-}
 impl BlogService {
     pub async fn new(p: &PgPool) -> Arc<Self> {
         Arc::new(Self(PostRepo::new(p)))
     }
 
-    pub async fn read(&self, reader: PostReader) -> DomainResult<ReadOut> {
-        todo!("validate ownership")
+    /// Lists every post owned by `author_id`.
+    pub async fn list(&self, author_id: i64) -> DomainResult<Vec<Post>> {
+        let posts = self.as_ref().list_posts(author_id).await?;
+        Ok(posts.into_iter().map(Into::into).collect())
     }
 
+    /// Fetches a single post, ensuring `user_id` is the owner.
+    pub async fn get(&self, user_id: i64, id: i64) -> DomainResult<Post> {
+        let post: Post = self.as_ref().get_post(id).await?.into();
+        post.validate_ownership(user_id)?;
+        Ok(post)
+    }
+
+    /// Deletes a post, validates ownership
     pub async fn delete(&self, user_id: i64, id: i64) -> DomainResult<()> {
-        todo!("validate ownership")
+        let post: Post = self.as_ref().get_post(id).await?.into();
+        post.validate_ownership(user_id)?;
+        self.as_ref().delete_post(id).await?;
+        Ok(())
     }
 
+    /// Deletes a post, validates ownership
     pub async fn create(
         &self,
         user_id: i64,
         p: PostUpsert,
     ) -> DomainResult<Post> {
-        todo!()
+        Ok(self.as_ref().insert_post(&p.into_db(user_id)).await?.into())
     }
 
+    /// Updates a post, validates ownership
     pub async fn update(
         &self,
         user_id: i64,
         post_id: i64,
         p: PostUpsert,
     ) -> DomainResult<Post> {
-        todo!("validate ownership")
+        let post: Post = self.as_ref().get_post(post_id).await?.into();
+        post.validate_ownership(user_id)?;
+
+        Ok(self.as_ref().update_post(&p.into_db(user_id)).await?.into())
     }
 }

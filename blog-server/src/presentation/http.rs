@@ -74,7 +74,6 @@ pub mod auth {
 pub mod posts {
     use super::IdPath;
     use crate::{
-        application::PostReader,
         domain::{DomainResult, Post, PostUpsert},
         infra::Claims,
         presentation::http::AppState,
@@ -93,12 +92,8 @@ pub mod posts {
         Ok(Json(
             state
                 .blog_service
-                .read(PostReader::single(
-                    claims.get_user_id(),
-                    path.into_inner(),
-                ))
-                .await?
-                .try_into()?,
+                .get(claims.get_user_id(), path.into_inner())
+                .await?,
         ))
     }
 
@@ -140,11 +135,7 @@ pub mod posts {
         claims: Claims,
     ) -> DomainResult<Json<Vec<Post>>> {
         Ok(Json(
-            state
-                .blog_service
-                .read(PostReader::list(claims.get_user_id()))
-                .await?
-                .try_into()?,
+            state.blog_service.list(claims.get_user_id()).await?,
         ))
     }
 

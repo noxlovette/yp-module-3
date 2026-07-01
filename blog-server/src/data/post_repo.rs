@@ -3,19 +3,19 @@ use sqlx::PgPool;
 
 /// The db version of the post
 pub struct PostDb {
-    id: i64,
-    title: String,
-    content: String,
-    author_id: i64,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    pub id: i64,
+    pub title: String,
+    pub content: String,
+    pub author_id: i64,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 /// The DB version of the update post
-pub struct PostUpsertDb<'a> {
-    author_id: i64,
-    title: &'a str,
-    content: &'a str,
+pub struct PostUpsertDb {
+    pub author_id: i64,
+    pub title: String,
+    pub content: String,
 }
 
 pub struct PostRepo(PgPool);
@@ -36,7 +36,7 @@ type PostResult = Result<PostDb, sqlx::Error>;
 
 impl PostRepo {
     /// Creates a new post
-    pub async fn insert_post<'a>(&self, p: &PostUpsertDb<'a>) -> PostResult {
+    pub async fn insert_post(&self, p: &PostUpsertDb) -> PostResult {
         sqlx::query_as!(
             PostDb,
             r#"
@@ -79,7 +79,7 @@ impl PostRepo {
     }
 
     /// Updates a given post
-    pub async fn update_post<'a>(&self, u: &PostUpsertDb<'a>) -> PostResult {
+    pub async fn update_post<'a>(&self, u: &PostUpsertDb) -> PostResult {
         sqlx::query_as!(
             PostDb,
             r#"
