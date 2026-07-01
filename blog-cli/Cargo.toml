@@ -4,3 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+clap = { version = "4.6.1", features = ["derive"] }
+blog-client = { path = "../blog-client" }
+dotenvy.workspace = true
+chrono.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "fs"] }
+anyhow.workspace = true
+indicatif = "0.18.6"
+anstream = "1.0.0"
+anstyle = "1.0.14"
+miette = "7.6.0"
