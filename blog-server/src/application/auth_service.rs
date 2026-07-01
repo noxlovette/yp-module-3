@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use crate::{
     data::{SignupDb, UserRepo},
-    domain::{DomainResult, LoginPayload, SignupPayload, User},
+    domain::{
+        DomainResult, LoginPayload, Password, PasswordError, SignupPayload,
+        User,
+    },
     infra::{JwtService, Token},
 };
 use serde::Serialize;
@@ -14,12 +17,12 @@ pub struct AuthService {
 }
 
 #[derive(Serialize, Debug)]
-pub struct SignupResponse {
+pub struct UserToken {
     token: Token,
     user: User,
 }
 
-impl From<(Token, User)> for SignupResponse {
+impl From<(Token, User)> for UserToken {
     fn from(value: (Token, User)) -> Self {
         Self {
             token: value.0,
@@ -37,26 +40,20 @@ impl AuthService {
     }
 
     /// Creates a new user
-    pub async fn signup(
-        &self,
-        p: SignupPayload,
-    ) -> DomainResult<SignupResponse> {
-        let u: User = self.repo.insert_user(p.into()).await?.into();
-        let token = self.jwt.generate_token(u.id, u.username.as_ref())?;
+    pub async fn signup(&self, p: SignupPayload) -> DomainResult<UserToken> {
+        let u: User = self.repo.insert_user(p.try_into()?).await?.into();
 
-        Ok((token, u).into())
+        Ok((self.jwt.generate_token(u.id, u.username.as_ref())?, u).into())
     }
 
     /// Compares the given password with the one stored in the db
     ///
     /// Issues a JWT on success
-    pub async fn login(&self, p: LoginPayload) -> DomainResult<()> {
-        todo!()
-    }
-}
+    pub async fn login(&self, p: LoginPayload) -> DomainResult<UserToken> {
+        let u = self.repo.read_for_auth((&p).into()).await?;
+        let h = Password::new_hashed(&u.password_hash);
+        p.get_password().validate(&h)?;
 
-impl Into<SignupDb> for SignupPayload {
-    fn into(self) -> SignupDb {
-        todo!()
+        Ok((self.jwt.generate_token(u.id, &u.username)?, u.into()).into())
     }
 }

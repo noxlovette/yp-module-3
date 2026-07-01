@@ -1,4 +1,4 @@
-use crate::infra::JwtError;
+use crate::{domain::PasswordError, infra::JwtError};
 use thiserror::Error;
 
 pub type DomainResult<T> = Result<T, DomainError>;
@@ -21,6 +21,8 @@ pub enum DomainError {
     TypeMismatch,
     #[error("validation/parsing error: {0}")]
     Parsing(#[from] ParsingError),
+    #[error("password error: {0}")]
+    Password(#[from] PasswordError),
 }
 
 impl From<JwtError> for DomainError {

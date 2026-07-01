@@ -1,4 +1,7 @@
-use crate::{data::UserDb, domain::ParsingError};
+use crate::{
+    data::{LoginCaller, SignupDb, UserDb},
+    domain::{ParsingError, user},
+};
 use argon2::{
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
     password_hash::SaltString,
@@ -29,6 +32,29 @@ pub enum Password {
     Hashed(String),
 }
 
+impl Into<String> for Email {
+    fn into(self) -> String {
+        self.0
+    }
+}
+
+impl Into<String> for Username {
+    fn into(self) -> String {
+        self.0
+    }
+}
+
+impl TryInto<SignupDb> for SignupPayload {
+    type Error = PasswordError;
+    fn try_into(self) -> Result<SignupDb, Self::Error> {
+        Ok(SignupDb {
+            username: self.username.into(),
+            email: self.email.into(),
+            password_hash: self.password.get_hash()?,
+        })
+    }
+}
+
 #[derive(Serialize, Debug, Clone)]
 pub struct User {
     pub id: i64,
@@ -52,7 +78,7 @@ impl From<UserDb> for User {
             id,
             username: Username::new(username),
             email: Email::new(email),
-            password_hash: Password::hashed(password_hash),
+            password_hash: Password::new_hashed(password_hash),
             created_at,
         }
     }
@@ -75,6 +101,26 @@ pub enum LoginPayload {
         email: Email,
         password: Password,
     },
+}
+
+impl LoginPayload {
+    pub fn get_password(&self) -> &Password {
+        match self {
+            Self::Email { password, .. } => password,
+            Self::Username { password, .. } => password,
+        }
+    }
+}
+
+impl<'a> Into<LoginCaller<'a>> for &'a LoginPayload {
+    fn into(self) -> LoginCaller<'a> {
+        match self {
+            LoginPayload::Email { email, .. } => LoginCaller::Email(email),
+            LoginPayload::Username { username, .. } => {
+                LoginCaller::Username(username)
+            }
+        }
+    }
 }
 
 impl Username {
@@ -122,13 +168,20 @@ impl Password {
     const MIN: usize = 8;
 
     /// Creates a Hashed instance of Password
-    pub fn hashed(s: impl Into<String>) -> Self {
+    pub fn new_hashed(s: impl Into<String>) -> Self {
         Self::Hashed(s.into())
     }
 
     /// Creates a Plain instance of Password
-    pub fn plain(s: impl Into<String>) -> Self {
+    pub fn new_plain(s: impl Into<String>) -> Self {
         Self::Plain(s.into())
+    }
+
+    pub fn get_hash(self) -> Result<String, PasswordError> {
+        match self {
+            Self::Hashed(h) => Ok(h),
+            _ => Err(PasswordError::HashRequired),
+        }
     }
 
     /// Parses a string into a plain password
@@ -141,7 +194,7 @@ impl Password {
             });
         }
 
-        Ok(Self::plain(raw))
+        Ok(Self::new_plain(raw))
     }
 
     /// Hashes a password. Argon2
@@ -152,7 +205,7 @@ impl Password {
                     &mut argon2::password_hash::rand_core::OsRng,
                 );
 
-                Ok(Self::hashed(
+                Ok(Self::new_hashed(
                     ARGON.hash_password(p.as_bytes(), &salt)?.to_string(),
                 ))
             }
@@ -226,6 +279,11 @@ impl<'de> Deserialize<'de> for Email {
 }
 
 impl AsRef<str> for Username {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+impl AsRef<str> for Email {
     fn as_ref(&self) -> &str {
         &self.0
     }

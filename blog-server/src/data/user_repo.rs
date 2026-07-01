@@ -1,7 +1,6 @@
+use crate::domain::{Email, User, Username};
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
-
-use crate::domain::Username;
 
 pub struct UserRepo(PgPool);
 
@@ -20,9 +19,15 @@ pub struct UserDb {
 }
 
 pub struct SignupDb {
-    username: String,
-    password_hash: String,
-    email: String,
+    pub username: String,
+    pub password_hash: String,
+    pub email: String,
+}
+
+pub struct AuthUserDb {
+    pub username: String,
+    pub password_hash: String,
+    pub id: i64,
 }
 
 impl UserRepo {
@@ -36,6 +41,11 @@ type AuthResult = Result<UserDb, sqlx::Error>;
 pub enum ReaderCaller {
     Id(i64),
     Username(Username),
+}
+
+pub enum LoginCaller<'a> {
+    Email(&'a Email),
+    Username(&'a Username),
 }
 
 impl UserRepo {
@@ -98,12 +108,29 @@ impl UserRepo {
         .map_err(Into::into)
     }
 
-    pub async fn read_password_hash(
+    pub async fn read_for_auth<'a>(
         &self,
-        id: i64,
-    ) -> Result<String, sqlx::Error> {
-        sqlx::query_scalar!("SELECT password_hash from users where id = $1", id)
-            .fetch_one(self.as_ref())
-            .await
+        reader: LoginCaller<'a>,
+    ) -> Result<UserDb, sqlx::Error> {
+        match reader {
+            LoginCaller::Email(e) => {
+                sqlx::query_as!(
+                    UserDb,
+                    "SELECT * from users where email = $1",
+                    e.as_ref()
+                )
+                .fetch_one(self.as_ref())
+                .await
+            }
+            LoginCaller::Username(u) => {
+                sqlx::query_as!(
+                    UserDb,
+                    "SELECT * from users where username = $1",
+                    u.as_ref()
+                )
+                .fetch_one(self.as_ref())
+                .await
+            }
+        }
     }
 }
