@@ -1,11 +1,16 @@
 use actix_web::{App, HttpServer, web};
+use blog_server::presentation::http::{
+    AppState,
+    auth::{login, register},
+    posts::{create_post, delete_post, get_post, list_posts, update_post},
+};
 use std::time::Duration;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let state = AppState::new();
-    HttpServer::new(|| {
-        App::new().app_data(web::Data::new(state)).service(
+    HttpServer::new(move || {
+        App::new().app_data(web::Data::new(state.clone())).service(
             web::scope("/api")
                 .service(web::scope("/auth").service(register).service(login))
                 .service(

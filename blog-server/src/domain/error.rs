@@ -1,4 +1,7 @@
+use crate::{domain::ParsingError, infra::JwtError};
 use thiserror::Error;
+
+pub type DomainResult<T> = Result<T, DomainError>;
 
 #[derive(Debug, Error)]
 pub enum DomainError {
@@ -14,4 +17,20 @@ pub enum DomainError {
     PostNotFound,
     #[error("Кышь отсюда")]
     Forbidden,
+    #[error("Expected list, got single, or vice versa")]
+    TypeMismatch,
+    #[error("validation/parsing error: {0}")]
+    Parsing(#[from] ParsingError),
+}
+
+impl From<JwtError> for DomainError {
+    fn from(value: JwtError) -> Self {
+        todo!()
+    }
+}
+
+impl From<sqlx::Error> for DomainError {
+    fn from(value: sqlx::Error) -> Self {
+        todo!()
+    }
 }

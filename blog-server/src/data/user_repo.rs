@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
-use crate::{domain::Username, infra::DbError};
+use crate::domain::Username;
 
 pub struct UserRepo(PgPool);
 
@@ -31,7 +31,7 @@ impl UserRepo {
     }
 }
 
-type AuthResult = Result<UserDb, DbError>;
+type AuthResult = Result<UserDb, sqlx::Error>;
 
 pub enum ReaderCaller {
     Id(i64),

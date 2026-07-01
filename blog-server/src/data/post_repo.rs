@@ -1,4 +1,3 @@
-use crate::infra::DbError;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
@@ -33,7 +32,7 @@ impl PostRepo {
     }
 }
 
-type PostResult = Result<PostDb, DbError>;
+type PostResult = Result<PostDb, sqlx::Error>;
 
 impl PostRepo {
     /// Creates a new post
@@ -65,7 +64,7 @@ impl PostRepo {
     /// Deletes a given post
     ///
     /// Does not validate ownership
-    pub async fn delete_post(&self, id: i64) -> Result<(), DbError> {
+    pub async fn delete_post(&self, id: i64) -> Result<(), sqlx::Error> {
         let qr = sqlx::query!(
             r#"
            DELETE FROM posts
@@ -75,10 +74,6 @@ impl PostRepo {
         )
         .execute(self.as_ref())
         .await?;
-
-        if qr.rows_affected() == 0 {
-            return Err(DbError::NotFound);
-        }
 
         Ok(())
     }
@@ -104,7 +99,7 @@ impl PostRepo {
     pub async fn list_posts(
         &self,
         author_id: i64,
-    ) -> Result<Vec<PostDb>, DbError> {
+    ) -> Result<Vec<PostDb>, sqlx::Error> {
         sqlx::query_as!(
             PostDb,
             r#"

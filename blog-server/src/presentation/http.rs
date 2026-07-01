@@ -1,17 +1,16 @@
 use crate::{
-    application::{ApplicationError, AuthError, AuthService, BlogService},
-    infra::{Claims, DbError},
+    application::{AuthService, BlogService},
+    domain::DomainError,
+    infra::Claims,
 };
 use actix_web::{FromRequest, ResponseError, web};
 use std::{pin::Pin, sync::Arc};
 
 // TODO: need to return correct response types and error messages
-impl ResponseError for ApplicationError {}
-impl ResponseError for AuthError {}
-impl ResponseError for DbError {}
+impl ResponseError for DomainError {}
 
 impl FromRequest for Claims {
-    type Error = AuthError;
+    type Error = DomainError;
     type Future = Pin<Box<dyn Future<Output = Result<Self, Self::Error>>>>;
 
     fn extract(req: &actix_web::HttpRequest) -> Self::Future {
@@ -34,12 +33,17 @@ pub struct AppState {
     blog_service: Arc<BlogService>,
 }
 
+impl AppState {
+    pub fn new() -> Arc<Self> {
+        todo!()
+    }
+}
+
 type IdPath = web::Path<i64>;
 
 pub mod auth {
     use crate::{
-        application::ApplicationResult,
-        domain::{LoginPayload, SignupPayload},
+        domain::{DomainResult, LoginPayload, SignupPayload},
         presentation::http::AppState,
     };
     use actix_web::{
@@ -51,26 +55,26 @@ pub mod auth {
     pub async fn register(
         state: web::Data<AppState>,
         payload: Json<SignupPayload>,
-    ) -> ApplicationResult<HttpResponse> {
+    ) -> DomainResult<HttpResponse> {
         Ok(HttpResponse::Created()
-            .json(state.auth_service.signup(payload.into_inner())?))
+            .json(state.auth_service.signup(payload.into_inner()).await?))
     }
 
     #[post("/login")]
     pub async fn login(
         state: web::Data<AppState>,
         payload: Json<LoginPayload>,
-    ) -> ApplicationResult<HttpResponse> {
+    ) -> DomainResult<HttpResponse> {
         Ok(HttpResponse::Ok()
-            .json(state.auth_service.login(payload.into_inner())?))
+            .json(state.auth_service.login(payload.into_inner()).await?))
     }
 }
 
 pub mod posts {
     use super::IdPath;
     use crate::{
-        application::{ApplicationResult, PostReader},
-        domain::{Post, PostUpsert},
+        application::PostReader,
+        domain::{DomainResult, Post, PostUpsert},
         infra::Claims,
         presentation::http::AppState,
     };
@@ -84,14 +88,15 @@ pub mod posts {
         state: web::Data<AppState>,
         claims: Claims,
         path: IdPath,
-    ) -> ApplicationResult<Json<Post>> {
+    ) -> DomainResult<Json<Post>> {
         Ok(Json(
             state
                 .blog_service
                 .read(PostReader::single(
                     claims.get_user_id(),
                     path.into_inner(),
-                ))?
+                ))
+                .await?
                 .try_into()?,
         ))
     }
@@ -102,22 +107,28 @@ pub mod posts {
         path: IdPath,
         claims: Claims,
         payload: Json<PostUpsert>,
-    ) -> ApplicationResult<Json<Post>> {
-        Ok(Json(state.blog_service.update(
-            claims.get_user_id(),
-            path.into_inner(),
-            payload.into_inner(),
-        )?))
+    ) -> DomainResult<Json<Post>> {
+        Ok(Json(
+            state
+                .blog_service
+                .update(
+                    claims.get_user_id(),
+                    path.into_inner(),
+                    payload.into_inner(),
+                )
+                .await?,
+        ))
     }
     #[delete("/{id}")]
     pub async fn delete_post(
         state: web::Data<AppState>,
         claims: Claims,
         path: IdPath,
-    ) -> ApplicationResult<HttpResponse> {
+    ) -> DomainResult<HttpResponse> {
         state
             .blog_service
-            .delete(claims.get_user_id(), path.into_inner())?;
+            .delete(claims.get_user_id(), path.into_inner())
+            .await?;
 
         Ok(HttpResponse::NoContent().finish())
     }
@@ -126,11 +137,12 @@ pub mod posts {
     pub async fn list_posts(
         state: web::Data<AppState>,
         claims: Claims,
-    ) -> ApplicationResult<Json<Vec<Post>>> {
+    ) -> DomainResult<Json<Vec<Post>>> {
         Ok(Json(
             state
                 .blog_service
-                .read(PostReader::list(claims.get_user_id()))?
+                .read(PostReader::list(claims.get_user_id()))
+                .await?
                 .try_into()?,
         ))
     }
@@ -140,11 +152,12 @@ pub mod posts {
         state: web::Data<AppState>,
         claims: Claims,
         payload: Json<PostUpsert>,
-    ) -> ApplicationResult<HttpResponse> {
+    ) -> DomainResult<HttpResponse> {
         Ok(HttpResponse::Created().json(
             state
                 .blog_service
-                .create(claims.get_user_id(), payload.into_inner())?,
+                .create(claims.get_user_id(), payload.into_inner())
+                .await?,
         ))
     }
 }

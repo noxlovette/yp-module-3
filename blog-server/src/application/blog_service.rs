@@ -1,9 +1,8 @@
-use std::{io::Read, sync::Arc};
+use std::sync::Arc;
 
 use crate::{
-    application::{ApplicationError, ApplicationResult},
     data::PostRepo,
-    domain::{Post, PostUpsert},
+    domain::{DomainError, DomainResult, Post, PostUpsert},
 };
 use sqlx::PgPool;
 
@@ -48,38 +47,38 @@ impl TryFrom<ReadOut> for Post {
     }
 }
 
-impl From<ReadOut> for ApplicationError {
+impl From<ReadOut> for DomainError {
     fn from(_: ReadOut) -> Self {
-        ApplicationError::TypeMismatch
+        DomainError::TypeMismatch
     }
 }
 impl BlogService {
-    pub fn new(p: &PgPool) -> Arc<Self> {
+    pub async fn new(p: &PgPool) -> Arc<Self> {
         Arc::new(Self(PostRepo::new(p)))
     }
 
-    pub fn read(&self, reader: PostReader) -> ApplicationResult<ReadOut> {
+    pub async fn read(&self, reader: PostReader) -> DomainResult<ReadOut> {
         todo!("validate ownership")
     }
 
-    pub fn delete(&self, user_id: i64, id: i64) -> ApplicationResult<()> {
+    pub async fn delete(&self, user_id: i64, id: i64) -> DomainResult<()> {
         todo!("validate ownership")
     }
 
-    pub fn create(
+    pub async fn create(
         &self,
         user_id: i64,
         p: PostUpsert,
-    ) -> ApplicationResult<Post> {
+    ) -> DomainResult<Post> {
         todo!()
     }
 
-    pub fn update(
+    pub async fn update(
         &self,
         user_id: i64,
         post_id: i64,
         p: PostUpsert,
-    ) -> ApplicationResult<Post> {
+    ) -> DomainResult<Post> {
         todo!("validate ownership")
     }
 }

@@ -1,33 +1,17 @@
 use std::sync::Arc;
 
 use crate::{
-    data::UserRepo,
-    domain::{LoginPayload, ParsingError, SignupPayload, User},
-    infra::{JwtError, JwtService, Token},
+    data::{SignupDb, UserRepo},
+    domain::{DomainResult, LoginPayload, SignupPayload, User},
+    infra::{JwtService, Token},
 };
 use serde::Serialize;
 use sqlx::PgPool;
-use thiserror::Error;
 
 pub struct AuthService {
     repo: UserRepo,
     jwt: Arc<JwtService>,
 }
-
-#[derive(Debug, Error)]
-pub enum AuthError {
-    /// JWT-Related Errors
-    #[error("JWT Error: {0}")]
-    Jwt(#[from] JwtError),
-
-    #[error("invalid credentials")]
-    InvalidCredentials,
-
-    #[error("validation/parsing error: {0}")]
-    Parsing(#[from] ParsingError),
-}
-
-type AuthResult<T> = Result<T, AuthError>;
 
 #[derive(Serialize, Debug)]
 pub struct SignupResponse {
@@ -36,7 +20,7 @@ pub struct SignupResponse {
 }
 
 impl AuthService {
-    pub fn new(p: &PgPool) -> AuthResult<Arc<Self>> {
+    pub fn new(p: &PgPool) -> DomainResult<Arc<Self>> {
         Ok(Arc::new(Self {
             repo: UserRepo::new(p),
             jwt: JwtService::new()?,
@@ -44,14 +28,24 @@ impl AuthService {
     }
 
     /// Creates a new user
-    pub fn signup(&self, p: SignupPayload) -> AuthResult<SignupResponse> {
+    pub async fn signup(
+        &self,
+        p: SignupPayload,
+    ) -> DomainResult<SignupResponse> {
+        let u = self.repo.insert_user(p.into()).await?;
         todo!()
     }
 
     /// Compares the given password with the one stored in the db
     ///
     /// Issues a JWT on success
-    pub fn login(&self, p: LoginPayload) -> AuthResult<()> {
+    pub async fn login(&self, p: LoginPayload) -> DomainResult<()> {
+        todo!()
+    }
+}
+
+impl Into<SignupDb> for SignupPayload {
+    fn into(self) -> SignupDb {
         todo!()
     }
 }
